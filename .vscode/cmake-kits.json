@@ -1,0 +1,28 @@
+[
+  {
+    "name": "GCC",
+    "compilers": {
+      "C": "/usr/bin/gcc",
+      "CXX": "/usr/bin/g++"
+    },
+    "preferredGenerator": {
+      "name": "Ninja"
+    },
+    "environmentVariables": {
+      "CMakeToolsKit": "GCC"
+    }
+  },
+  {
+    "name": "Clang",
+    "compilers": {
+      "C": "/usr/bin/clang",
+      "CXX": "/usr/bin/clang++"
+    },
+    "preferredGenerator": {
+      "name": "Ninja"
+    },
+    "environmentVariables": {
+      "CMakeToolsKit": "Clang"
+    }
+  }
+]

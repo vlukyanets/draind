@@ -1,0 +1,47 @@
+{
+  "default_profile": "balanced",
+  "profiles": [
+    {
+      "name": "performance",
+      "cpu_governor": "performance",
+      "cpu_epp": "performance",
+      "brightness_percent": 100,
+      "dim_brightness_percent": 20,
+      "dim_timeout": 120,
+      "sleep_timeout": 0,
+      "before_sleep_cmd": "",
+      "lock_cmd": "",
+      "lid_close_action": "",
+      "power_button_action": "",
+      "sleep_button_action": ""
+    },
+    {
+      "name": "balanced",
+      "cpu_governor": "powersave",
+      "cpu_epp": "balance_performance",
+      "brightness_percent": 70,
+      "dim_brightness_percent": 10,
+      "dim_timeout": 180,
+      "sleep_timeout": 300,
+      "before_sleep_cmd": "",
+      "lock_cmd": "",
+      "lid_close_action": "suspend",
+      "power_button_action": "suspend",
+      "sleep_button_action": "suspend"
+    },
+    {
+      "name": "powersave",
+      "cpu_governor": "powersave",
+      "cpu_epp": "power",
+      "brightness_percent": 40,
+      "dim_brightness_percent": 5,
+      "dim_timeout": 60,
+      "sleep_timeout": 120,
+      "before_sleep_cmd": "",
+      "lock_cmd": "",
+      "lid_close_action": "suspend",
+      "power_button_action": "suspend",
+      "sleep_button_action": "suspend"
+    }
+  ]
+}

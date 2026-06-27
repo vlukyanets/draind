@@ -1,0 +1,63 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug draind (root, gdbserver)",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/draind",
+      "args": [
+        "--debug",
+        "--foreground",
+        "--config",
+        "${workspaceFolder}/config/draind.json"
+      ],
+      "miDebuggerServerAddress": "localhost:1234",
+      "miDebuggerPath": "/usr/bin/gdb",
+      "useExtendedRemote": true,
+      "MIMode": "gdb",
+      "cwd": "${workspaceFolder}",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ],
+      "preLaunchTask": "Build"
+    },
+    {
+      "name": "Debug draind-ctl",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/draind-ctl",
+      "args": [
+        "status"
+      ],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "miDebuggerPath": "/usr/bin/gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ],
+      "preLaunchTask": "Build"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Debug draind + draind-ctl",
+      "configurations": [
+        "Debug draind (root, gdbserver)",
+        "Debug draind-ctl"
+      ],
+      "stopAll": true
+    }
+  ]
+}

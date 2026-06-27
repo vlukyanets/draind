@@ -1,0 +1,12 @@
+[Unit]
+Description=draind per-user agent
+After=default.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/draind-agent
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target

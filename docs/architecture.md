@@ -1,0 +1,100 @@
+# Architecture
+
+## Overview
+
+draind splits responsibility across two long-running processes:
+
+- **draind** (root) — policy engine. Knows the active session, owns timers, writes sysfs.
+- **draind-agent** (user) — sensor. Knows what the user is doing in their session.
+
+This split exists because sysfs writes require root, while Wayland and the session D-Bus
+are per-user and reject root connections.
+
+## draind (root daemon)
+
+Responsibilities:
+- Load and reload config (`/etc/draind/draind.json`)
+- Write backlight brightness (`/sys/class/backlight/*/brightness`)
+- Write CPU governor and EPP (`/sys/devices/system/cpu/cpufreq/*/`)
+- Track the active logind session on `seat0` via system D-Bus
+- Accept agent connections; only honour signals from the active session's agent
+- Accept ctl connections for status queries and profile changes
+- Manage dim and sleep timers; execute suspend
+
+The daemon has no Wayland or session D-Bus connection. It is intentionally blind to
+per-session state except through what agents report.
+
+## draind-agent (per-user)
+
+Responsibilities:
+- Connect to the daemon socket and register with session ID
+- Monitor Wayland idle via `ext_idle_notify_v1` (respects compositor idle inhibitors)
+- Monitor MPRIS2 players on the session D-Bus for active media playback
+- Send `idle_dim`, `idle_sleep`, `active` events to the daemon
+- Send `inhibit`/`uninhibit` when media playback starts/stops (belt-and-suspenders
+  in case the compositor does not bridge D-Bus screensaver inhibitors to Wayland idle)
+
+One agent instance runs per logged-in user, started automatically by systemd user
+session (`WantedBy=default.target`).
+
+## Multi-user behaviour
+
+When two users are logged in:
+- Two agent instances run simultaneously, each registered with their logind session ID
+- The daemon queries logind for the active session on `seat0`
+- Only the active session's agent can trigger dim/sleep
+- If the active session switches (fast user switching), the daemon immediately begins
+  honouring the new active agent's signals
+- An inhibit from any agent still suppresses dim/sleep (e.g. a background user is
+  transcoding; no sleep)
+
+## Session lifecycle
+
+```
+user logs in
+  → systemd starts draind-agent
+  → agent connects to /run/draind/draind.sock
+  → agent sends HELLO {session_id, uid}
+  → daemon records agent, checks if session is active
+
+user is idle (no input, no media)
+  → Wayland compositor fires ext_idle_notify idled event
+  → agent sends IDLE_DIM to daemon
+  → daemon checks: is this agent's session active? yes
+  → daemon dims backlight
+
+user moves mouse
+  → Wayland compositor fires resumed event
+  → agent sends ACTIVE to daemon
+  → daemon restores backlight
+
+sleep timeout expires
+  → agent sends IDLE_SLEEP to daemon
+  → daemon runs before_sleep_cmd, calls systemctl suspend
+
+user logs out
+  → agent disconnects (daemon drops its record)
+```
+
+## Fallback
+
+The agent probes for Wayland at runtime and falls back silently — it never refuses
+to start because Wayland is absent.
+
+Fallback triggers:
+- Built without `HAVE_WAYLAND` (no Wayland libs at compile time)
+- `WAYLAND_DISPLAY` not set (TTY, X11, SSH session)
+- `wl_display_connect()` fails for any reason
+- Compositor does not advertise `ext_idle_notify_v1`
+
+Fallback behaviour:
+- `input_idle_monitor` reads `/dev/input/event*` and synthesises idle events
+  from time-since-last-input using the timeouts received from the daemon
+- MPRIS monitoring still works (pure D-Bus, no Wayland dependency)
+- From the daemon's perspective the agent looks identical either way
+
+## Config
+
+Single JSON file at `/etc/draind/draind.json`, owned and read by the daemon.
+Agents receive relevant profile data (timeouts) via the socket after connecting
+so they can set up Wayland idle notification durations.

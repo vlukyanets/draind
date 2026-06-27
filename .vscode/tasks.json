@@ -1,0 +1,157 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build",
+      "type": "shell",
+      "command": "cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Debug && ninja -C build",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": [
+        "$gcc"
+      ]
+    },
+    {
+      "label": "Build (Release)",
+      "type": "shell",
+      "command": "cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release && ninja -C build",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": [
+        "$gcc"
+      ]
+    },
+    {
+      "label": "Format all C++ files",
+      "type": "shell",
+      "command": "find src -name '*.cpp' -o -name '*.hpp' | xargs clang-format -i",
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "cmake-format: CMakeLists.txt",
+      "type": "shell",
+      "command": "cmake-format -i CMakeLists.txt",
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Format all",
+      "dependsOn": [
+        "clang-format: all files",
+        "cmake-format: CMakeLists.txt"
+      ],
+      "dependsOrder": "parallel",
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "systemd: install & restart draind",
+      "type": "shell",
+      "command": "sudo cp build/draind /usr/bin/draind && sudo cp build/draind-ctl /usr/bin/draind-ctl && sudo systemctl restart draind",
+      "dependsOn": [
+        "Build",
+        "systemd: install service file"
+      ],
+      "dependsOrder": "sequence",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "systemd: install service file",
+      "type": "shell",
+      "command": "sudo cp config/draind.service /usr/lib/systemd/system/draind.service && sudo systemctl daemon-reload",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "systemd: enable draind",
+      "type": "shell",
+      "command": "sudo systemctl enable --now draind",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "systemd: disable draind",
+      "type": "shell",
+      "command": "sudo systemctl disable --now draind",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "systemd: status draind",
+      "type": "shell",
+      "command": "systemctl status draind",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "gdbserver: start draind on :1234",
+      "type": "shell",
+      "command": "sudo DRAIND_CONFIG=${workspaceFolder}/config/draind.json gdbserver localhost:1234 ${workspaceFolder}/build/draind",
+      "dependsOn": "Build",
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "problemMatcher": {
+        "pattern": { "regexp": "^$" },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^gdbserver",
+          "endsPattern": "Listening on port 1234"
+        }
+      }
+    },
+    {
+      "label": "systemd: logs draind",
+      "type": "shell",
+      "command": "journalctl -u draind -f",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "problemMatcher": [],
+      "isBackground": true
+    }
+  ]
+}
