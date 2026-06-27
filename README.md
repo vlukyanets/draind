@@ -93,10 +93,9 @@ draind-ctl reload-config
 ## Usage
 
 ```sh
-# System daemon (enabled by pacman install hook)
+# Both services are enabled automatically on install.
+# To start them manually after building from source:
 systemctl enable --now draind
-
-# Per-user agent
 systemctl --user enable --now draind-agent
 
 # CLI
