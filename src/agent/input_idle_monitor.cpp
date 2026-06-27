@@ -105,7 +105,7 @@ void InputIdleMonitor::poll() {
         if (efd == m_timer_fd) {
             // Drain timerfd
             uint64_t exp;
-            read(m_timer_fd, &exp, sizeof(exp));
+            (void)read(m_timer_fd, &exp, sizeof(exp));
             on_timeout();
         } else {
             // Drain input device (we don't care about the event content)

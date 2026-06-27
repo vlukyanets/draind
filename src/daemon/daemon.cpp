@@ -250,7 +250,7 @@ void Daemon::on_idle_sleep(int fd) {
     LOG_INFO << "daemon: suspending";
     if (!p->before_sleep_cmd.empty())
         PowerManager::run_command(p->before_sleep_cmd);
-    system("systemctl suspend");
+    (void)system("systemctl suspend");
 }
 
 void Daemon::on_active(int fd) {
