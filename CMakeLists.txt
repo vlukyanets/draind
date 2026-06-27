@@ -114,10 +114,6 @@ install(FILES config/draind.service
     DESTINATION /usr/lib/systemd/system)
 install(FILES config/draind-agent.service
     DESTINATION /usr/lib/systemd/user)
-install(DIRECTORY DESTINATION /usr/lib/systemd/user/default.target.wants)
-install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink \
-    /usr/lib/systemd/user/draind-agent.service \
-    \$ENV{DESTDIR}/usr/lib/systemd/user/default.target.wants/draind-agent.service)")
 install(FILES config/draind-sysusers.conf
     DESTINATION /usr/lib/sysusers.d RENAME draind.conf)
 install(FILES config/logind-draind.conf
