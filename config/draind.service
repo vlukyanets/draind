@@ -1,12 +1,11 @@
 [Unit]
 Description=draind power management daemon
-After=local-fs.target
+After=local-fs.target systemd-logind.service
+Requires=systemd-logind.service
 
 [Service]
-Type=forking
-PIDFile=/run/draind.pid
+Type=simple
 ExecStart=/usr/bin/draind
-ExecReload=/bin/kill -HUP $MAINPID
 Restart=on-failure
 RestartSec=2
 
