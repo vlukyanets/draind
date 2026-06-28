@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-namespace draind {
+namespace draind::agent {
 
 // Watches MPRIS2 players on the session D-Bus.
 // Calls on_inhibit(reason) when any player is Playing,
@@ -24,7 +24,7 @@ class MprisMonitor {
     void poll();
     int  bus_fd() const;
 
-    void on_inhibit(InhibitCb cb)   { m_on_inhibit   = std::move(cb); }
+    void on_inhibit(InhibitCb cb) { m_on_inhibit = std::move(cb); }
     void on_uninhibit(InhibitCb cb) { m_on_uninhibit = std::move(cb); }
 
     // Called by sd-bus trampoline
@@ -56,4 +56,4 @@ class MprisMonitor {
     InhibitCb m_on_uninhibit;
 };
 
-} // namespace draind
+} // namespace draind::agent

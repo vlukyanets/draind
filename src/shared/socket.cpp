@@ -87,10 +87,11 @@ bool write_line(int fd, std::string_view msg) {
     while (rem > 0) {
         ssize_t n = write(fd, p, rem);
         if (n < 0) {
-            if (errno == EINTR) continue;
+            if (errno == EINTR)
+                continue;
             return false;
         }
-        p   += n;
+        p += n;
         rem -= n;
     }
     return true;

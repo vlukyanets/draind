@@ -2,12 +2,14 @@
 #include "../shared/logger.hpp"
 #include <string>
 
-namespace draind {
+namespace draind::agent {
 
 struct AgentOptions {
-    std::string socket_path; // default: proto::SOCKET_PATH
-    std::string session_id;  // $XDG_SESSION_ID
-    uint32_t    uid = 0;
+    std::string socket_path;      // default: proto::SOCKET_PATH
+    std::string session_id;       // $XDG_SESSION_ID
+    std::string lock_cmd;         // shell command to lock the screen; empty = no lock
+    std::string before_sleep_cmd; // shell command run just before suspend; empty = none
+    uint32_t    uid       = 0;
     LogLevel    log_level = LogLevel::Info;
 };
 
@@ -28,6 +30,8 @@ class Agent {
 
     void on_daemon_line(const std::string& line);
     void on_daemon_disconnect();
+    void run_lock_cmd();
+    void run_before_sleep_cmd();
 
     void send(const std::string& msg);
 
@@ -36,4 +40,4 @@ class Agent {
     AgentOptions m_opts;
 };
 
-} // namespace draind
+} // namespace draind::agent

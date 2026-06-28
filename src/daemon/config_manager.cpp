@@ -1,11 +1,9 @@
 #include "config_manager.hpp"
 #include "../shared/logger.hpp"
 
-namespace draind {
+namespace draind::daemon {
 
-ConfigManager::ConfigManager(std::string path) : m_path(std::move(path)) {
-    reload();
-}
+ConfigManager::ConfigManager(std::string path) : m_path(std::move(path)) { reload(); }
 
 void ConfigManager::reload() {
     LOG_DEBUG << "config: loading " << m_path;
@@ -36,4 +34,4 @@ bool ConfigManager::set_active(const std::string& name) {
     return true;
 }
 
-} // namespace draind
+} // namespace draind::daemon

@@ -33,6 +33,7 @@ Responsibilities:
 - Send `idle_dim`, `idle_sleep`, `active` events to the daemon
 - Send `inhibit`/`uninhibit` when media playback starts/stops (belt-and-suspenders
   in case the compositor does not bridge D-Bus screensaver inhibitors to Wayland idle)
+- Run the user-configured `lock_cmd` when the daemon sends a `lock` message
 
 One agent instance runs per logged-in user, started automatically by systemd user
 session (`WantedBy=default.target`).
@@ -70,7 +71,9 @@ user moves mouse
 
 sleep timeout expires
   → agent sends IDLE_SLEEP to daemon
-  → daemon runs before_sleep_cmd, calls systemctl suspend
+  → daemon sends LOCK to the active session's agent (fire-and-forget)
+  → daemon broadcasts PRE_SLEEP to all agents; each runs before_sleep_cmd and acks
+  → daemon calls systemctl suspend
 
 user logs out
   → agent disconnects (daemon drops its record)
@@ -95,6 +98,21 @@ Fallback behaviour:
 
 ## Config
 
-Single JSON file at `/etc/draind/draind.json`, owned and read by the daemon.
-Agents receive relevant profile data (timeouts) via the socket after connecting
-so they can set up Wayland idle notification durations.
+The daemon reads `/etc/draind/draind.json` (system-wide, root-owned).
+
+Each user's agent reads `$XDG_CONFIG_HOME/draind/draind-agent.json`
+(typically `~/.config/draind/draind-agent.json`).
+If absent, the system default `/etc/xdg/draind/draind-agent.json` is used.
+
+```json
+{
+  "lock_cmd":         "bash -c '~/.config/niri/switch-layout.sh 0; qs -c noctalia-shell ipc call lockScreen lock'",
+  "before_sleep_cmd": "notify-send 'Going to sleep'"
+}
+```
+
+| Key | Runs as | When | Notes |
+|-----|---------|------|-------|
+| `lock_cmd` | user | pre-suspend | active session only; forked (non-blocking) |
+| `before_sleep_cmd` | user | pre-suspend | all sessions; synchronous, acked before suspend |
+

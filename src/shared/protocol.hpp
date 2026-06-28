@@ -19,18 +19,16 @@ constexpr const char* T_ACTIVE     = "active";
 constexpr const char* T_INHIBIT    = "inhibit";
 constexpr const char* T_UNINHIBIT  = "uninhibit";
 constexpr const char* T_ACK        = "ack";
+constexpr const char* T_LOCK       = "lock";
+constexpr const char* T_PRE_SLEEP  = "pre_sleep";
 constexpr const char* T_CTL        = "ctl";
 constexpr const char* T_CTL_REPLY  = "ctl_reply";
 
 // ── Decode ────────────────────────────────────────────────────────────────────
 
-inline json::Value decode(const std::string& line) {
-    return json::parse(line);
-}
+inline json::Value decode(const std::string& line) { return json::parse(line); }
 
-inline std::string msg_type(const json::Value& v) {
-    return v.str("type");
-}
+inline std::string msg_type(const json::Value& v) { return v.str("type"); }
 
 // ── Agent → Daemon ────────────────────────────────────────────────────────────
 
@@ -87,6 +85,18 @@ inline std::string encode_config(int dim_timeout, int sleep_timeout) {
 inline std::string encode_ack() {
     json::Value v;
     v["type"] = T_ACK;
+    return json::dump(v);
+}
+
+inline std::string encode_lock() {
+    json::Value v;
+    v["type"] = T_LOCK;
+    return json::dump(v);
+}
+
+inline std::string encode_pre_sleep() {
+    json::Value v;
+    v["type"] = T_PRE_SLEEP;
     return json::dump(v);
 }
 

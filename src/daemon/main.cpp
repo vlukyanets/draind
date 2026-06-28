@@ -1,5 +1,5 @@
-#include "daemon.hpp"
 #include "../shared/logger.hpp"
+#include "daemon.hpp"
 
 #include <cstdlib>
 #include <iostream>
@@ -7,12 +7,11 @@
 #include <string>
 
 static void usage(const char* argv0) {
-    std::cerr << "Usage: " << argv0
-              << " [-f] [-c <config>] [-l debug|info|warn|error]\n";
+    std::cerr << "Usage: " << argv0 << " [-f] [-c <config>] [-l debug|info|warn|error]\n";
 }
 
 int main(int argc, char** argv) {
-    draind::DaemonOptions opts;
+    draind::daemon::DaemonOptions opts;
 
     for (int i = 1; i < argc; ++i) {
         std::string a = argv[i];
@@ -21,8 +20,9 @@ int main(int argc, char** argv) {
         } else if ((a == "-c" || a == "--config") && i + 1 < argc) {
             opts.config_path = argv[++i];
         } else if ((a == "-l" || a == "--log-level") && i + 1 < argc) {
-            try { opts.log_level = draind::parse_log_level(argv[++i]); }
-            catch (const std::exception& e) {
+            try {
+                opts.log_level = draind::parse_log_level(argv[++i]);
+            } catch (const std::exception& e) {
                 std::cerr << "invalid log level: " << e.what() << "\n";
                 return 1;
             }
@@ -32,6 +32,6 @@ int main(int argc, char** argv) {
         }
     }
 
-    draind::Daemon daemon(opts);
+    draind::daemon::Daemon daemon(opts);
     return daemon.run();
 }

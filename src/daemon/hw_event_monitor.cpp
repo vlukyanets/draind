@@ -1,18 +1,19 @@
 #include "hw_event_monitor.hpp"
 #include "../shared/logger.hpp"
 
-#include <cstring>
 #include <cstdlib>
+#include <cstring>
 #include <dirent.h>
 #include <fcntl.h>
 #include <linux/input.h>
 #include <sys/epoll.h>
 #include <unistd.h>
 
-namespace draind {
+namespace draind::daemon {
 
 HwEventMonitor::~HwEventMonitor() {
-    if (m_epoll_fd >= 0) close(m_epoll_fd);
+    if (m_epoll_fd >= 0)
+        close(m_epoll_fd);
 }
 
 bool HwEventMonitor::init() {
@@ -28,13 +29,15 @@ bool HwEventMonitor::init() {
         return false;
     }
 
-    int count = 0;
+    int     count = 0;
     dirent* de;
     while ((de = readdir(dir))) {
-        if (strncmp(de->d_name, "event", 5) != 0) continue;
+        if (strncmp(de->d_name, "event", 5) != 0)
+            continue;
         std::string path = std::string("/dev/input/") + de->d_name;
-        int fd = open(path.c_str(), O_RDONLY | O_NONBLOCK | O_CLOEXEC);
-        if (fd < 0) continue;
+        int         fd   = open(path.c_str(), O_RDONLY | O_NONBLOCK | O_CLOEXEC);
+        if (fd < 0)
+            continue;
 
         // Check if this device reports EV_SW or EV_KEY (power/sleep buttons)
         unsigned long evbits = 0;
@@ -65,22 +68,25 @@ bool HwEventMonitor::init() {
 
 void HwEventMonitor::poll() {
     epoll_event events[8];
-    int n = epoll_wait(m_epoll_fd, events, 8, 0);
+    int         n = epoll_wait(m_epoll_fd, events, 8, 0);
     for (int i = 0; i < n; ++i) {
-        int fd = events[i].data.fd;
+        int         fd = events[i].data.fd;
         input_event ev{};
         while (read(fd, &ev, sizeof(ev)) == (ssize_t)sizeof(ev)) {
             if (ev.type == EV_SW && ev.code == SW_LID) {
                 HwEvent e = ev.value ? HwEvent::LidClose : HwEvent::LidOpen;
                 LOG_DEBUG << "hw_events: lid " << (ev.value ? "closed" : "opened");
-                if (m_cb) m_cb(e);
+                if (m_cb)
+                    m_cb(e);
             } else if (ev.type == EV_KEY && ev.value == 1 /* key down */) {
                 if (ev.code == KEY_POWER) {
                     LOG_DEBUG << "hw_events: power button";
-                    if (m_cb) m_cb(HwEvent::PowerButton);
+                    if (m_cb)
+                        m_cb(HwEvent::PowerButton);
                 } else if (ev.code == KEY_SLEEP) {
                     LOG_DEBUG << "hw_events: sleep button";
-                    if (m_cb) m_cb(HwEvent::SleepButton);
+                    if (m_cb)
+                        m_cb(HwEvent::SleepButton);
                 }
             }
         }
@@ -88,13 +94,18 @@ void HwEventMonitor::poll() {
 }
 
 void run_hw_action(const std::string& action) {
-    if (action.empty() || action == "none" || action == "ignore") return;
+    if (action.empty() || action == "none" || action == "ignore")
+        return;
 
     const char* cmd = nullptr;
-    if      (action == "suspend")      cmd = "systemctl suspend";
-    else if (action == "hibernate")    cmd = "systemctl hibernate";
-    else if (action == "hybrid-sleep") cmd = "systemctl hybrid-sleep";
-    else if (action == "poweroff")     cmd = "systemctl poweroff";
+    if (action == "suspend")
+        cmd = "systemctl suspend";
+    else if (action == "hibernate")
+        cmd = "systemctl hibernate";
+    else if (action == "hybrid-sleep")
+        cmd = "systemctl hybrid-sleep";
+    else if (action == "poweroff")
+        cmd = "systemctl poweroff";
     else {
         LOG_WARN << "hw_events: unknown action '" << action << "'";
         return;
@@ -102,7 +113,8 @@ void run_hw_action(const std::string& action) {
 
     LOG_INFO << "hw_events: running action '" << action << "'";
     int r = system(cmd);
-    if (r != 0) LOG_WARN << "hw_events: '" << cmd << "' exited " << r;
+    if (r != 0)
+        LOG_WARN << "hw_events: '" << cmd << "' exited " << r;
 }
 
-} // namespace draind
+} // namespace draind::daemon

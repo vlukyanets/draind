@@ -1,7 +1,7 @@
 #pragma once
 #include <functional>
 
-namespace draind {
+namespace draind::agent {
 
 // Abstract interface for idle detection.
 // Implementations: WaylandIdleMonitor (Wayland ext_idle_notify_v1)
@@ -25,8 +25,8 @@ class IIdleMonitor {
     virtual int fd() const = 0;
 
     // Callbacks set by Agent.
-    void on_dim(Callback cb)    { m_on_dim    = std::move(cb); }
-    void on_sleep(Callback cb)  { m_on_sleep  = std::move(cb); }
+    void on_dim(Callback cb) { m_on_dim = std::move(cb); }
+    void on_sleep(Callback cb) { m_on_sleep = std::move(cb); }
     void on_active(Callback cb) { m_on_active = std::move(cb); }
 
   protected:
@@ -35,4 +35,4 @@ class IIdleMonitor {
     Callback m_on_active;
 };
 
-} // namespace draind
+} // namespace draind::agent

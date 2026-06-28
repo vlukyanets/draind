@@ -9,7 +9,8 @@ namespace draind {
 
 const Profile* Config::find(const std::string& name) const {
     for (const auto& p : profiles)
-        if (p.name == name) return &p;
+        if (p.name == name)
+            return &p;
     return nullptr;
 }
 
@@ -30,12 +31,11 @@ Config load_config(const std::string& path) {
         p.name                   = pv.str("name");
         p.cpu_governor           = pv.str("cpu_governor");
         p.cpu_epp                = pv.str("cpu_epp");
-        p.brightness_percent     = (int)pv.num("brightness_percent",     100);
+        p.brightness_percent     = (int)pv.num("brightness_percent", 100);
         p.dim_brightness_percent = (int)pv.num("dim_brightness_percent", 20);
-        p.dim_timeout            = (int)pv.num("dim_timeout",            300);
-        p.sleep_timeout          = (int)pv.num("sleep_timeout",          600);
-        p.before_sleep_cmd       = pv.str("before_sleep_cmd");
-        p.lid_close_action       = pv.str("lid_close_action",    "suspend");
+        p.dim_timeout            = (int)pv.num("dim_timeout", 300);
+        p.sleep_timeout          = (int)pv.num("sleep_timeout", 600);
+        p.lid_close_action       = pv.str("lid_close_action", "suspend");
         p.power_button_action    = pv.str("power_button_action", "poweroff");
         p.sleep_button_action    = pv.str("sleep_button_action", "suspend");
 

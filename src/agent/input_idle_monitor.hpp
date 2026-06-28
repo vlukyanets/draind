@@ -2,7 +2,7 @@
 #include "idle_monitor.hpp"
 #include <cstdint>
 
-namespace draind {
+namespace draind::agent {
 
 // Fallback idle monitor: watches /dev/input/event* via epoll.
 // Fires on_dim after dim_ms of inactivity, on_sleep after sleep_ms,
@@ -26,13 +26,13 @@ class InputIdleMonitor : public IIdleMonitor {
     bool open_input_devices();
     void reset_idle_timer();
 
-    int      m_epoll_fd  = -1;
-    int      m_timer_fd  = -1; // timerfd for idle detection
-    int      m_dim_ms    = 0;
-    int      m_sleep_ms  = 0;
-    bool     m_dimmed    = false;
-    bool     m_sleeping  = false;
+    int      m_epoll_fd      = -1;
+    int      m_timer_fd      = -1; // timerfd for idle detection
+    int      m_dim_ms        = 0;
+    int      m_sleep_ms      = 0;
+    bool     m_dimmed        = false;
+    bool     m_sleeping      = false;
     uint64_t m_last_event_ms = 0; // monotonic ms of last input
 };
 
-} // namespace draind
+} // namespace draind::agent

@@ -5,7 +5,7 @@
 #include <functional>
 #include <string>
 
-namespace draind {
+namespace draind::daemon {
 
 enum class HwEvent { LidClose, LidOpen, PowerButton, SleepButton };
 
@@ -31,4 +31,4 @@ class HwEventMonitor {
 // Execute a hardware action string. "none"/"" → no-op.
 void run_hw_action(const std::string& action);
 
-} // namespace draind
+} // namespace draind::daemon

@@ -3,13 +3,13 @@
 #include <string>
 #include <vector>
 
-namespace draind {
+namespace draind::daemon {
 
 class PowerManager {
   public:
-    void apply(const Profile& p);   // set governor, EPP, brightness
-    void dim(const Profile& p);     // lower brightness to dim_brightness_percent
-    void undim(const Profile& p);   // restore brightness to brightness_percent
+    void apply(const Profile& p); // set governor, EPP, brightness
+    void dim(const Profile& p);   // lower brightness to dim_brightness_percent
+    void undim(const Profile& p); // restore brightness to brightness_percent
 
     static void run_command(const std::string& cmd);
 
@@ -22,4 +22,4 @@ class PowerManager {
     static std::string              find_backlight_path();
 };
 
-} // namespace draind
+} // namespace draind::daemon

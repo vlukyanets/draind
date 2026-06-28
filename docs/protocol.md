@@ -70,6 +70,23 @@ The agent uses these values to configure Wayland idle notification timeouts.
 {"type":"config","dim_timeout":180,"sleep_timeout":300}
 ```
 
+### LOCK
+Sent to the active session's agent just before the daemon suspends. The agent runs
+the user-configured `lock_cmd` as a background process (fire-and-forget).
+
+```json
+{"type":"lock"}
+```
+
+### PRE_SLEEP
+Broadcast to **all** connected agents just before suspend. Each agent runs its
+`before_sleep_cmd` synchronously, then replies with ACK. The daemon waits up to
+5 seconds for all acks before proceeding to suspend.
+
+```json
+{"type":"pre_sleep"}
+```
+
 ### ACK
 Sent in response to INHIBIT / UNINHIBIT to confirm receipt.
 

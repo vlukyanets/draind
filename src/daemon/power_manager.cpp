@@ -7,18 +7,22 @@
 #include <fstream>
 #include <sstream>
 
-namespace draind {
+namespace draind::daemon {
 
 static bool write_file(const std::string& path, const std::string& value) {
     std::ofstream f(path);
-    if (!f) { LOG_WARN << "write_file: cannot open " << path; return false; }
+    if (!f) {
+        LOG_WARN << "write_file: cannot open " << path;
+        return false;
+    }
     f << value;
     return !f.fail();
 }
 
 static std::string read_file(const std::string& path) {
     std::ifstream f(path);
-    if (!f) return {};
+    if (!f)
+        return {};
     std::ostringstream ss;
     ss << f.rdbuf();
     std::string s = ss.str();
@@ -29,8 +33,9 @@ static std::string read_file(const std::string& path) {
 
 std::vector<std::string> PowerManager::cpu_policy_paths() {
     std::vector<std::string> paths;
-    DIR* dir = opendir("/sys/devices/system/cpu/cpufreq");
-    if (!dir) return paths;
+    DIR*                     dir = opendir("/sys/devices/system/cpu/cpufreq");
+    if (!dir)
+        return paths;
     dirent* de;
     while ((de = readdir(dir)))
         if (strncmp(de->d_name, "policy", 6) == 0)
@@ -41,11 +46,13 @@ std::vector<std::string> PowerManager::cpu_policy_paths() {
 
 std::string PowerManager::find_backlight_path() {
     DIR* dir = opendir("/sys/class/backlight");
-    if (!dir) return {};
+    if (!dir)
+        return {};
     std::string path;
-    dirent* de;
+    dirent*     de;
     while ((de = readdir(dir))) {
-        if (de->d_name[0] == '.') continue;
+        if (de->d_name[0] == '.')
+            continue;
         path = std::string("/sys/class/backlight/") + de->d_name;
         break;
     }
@@ -55,9 +62,15 @@ std::string PowerManager::find_backlight_path() {
 
 bool PowerManager::set_brightness_percent(int pct) {
     std::string base = find_backlight_path();
-    if (base.empty()) { LOG_WARN << "backlight: no sysfs node found"; return false; }
+    if (base.empty()) {
+        LOG_WARN << "backlight: no sysfs node found";
+        return false;
+    }
     std::string max_s = read_file(base + "/max_brightness");
-    if (max_s.empty()) { LOG_WARN << "backlight: cannot read max_brightness"; return false; }
+    if (max_s.empty()) {
+        LOG_WARN << "backlight: cannot read max_brightness";
+        return false;
+    }
     int max_val = std::stoi(max_s);
     int target  = max_val * pct / 100;
     LOG_DEBUG << "brightness: " << pct << "% → " << target << "/" << max_val;
@@ -65,38 +78,50 @@ bool PowerManager::set_brightness_percent(int pct) {
 }
 
 bool PowerManager::set_cpu_governor(const std::string& gov) {
-    if (gov.empty()) return true;
+    if (gov.empty())
+        return true;
     bool ok = true;
     for (const auto& p : cpu_policy_paths()) {
         std::string node = p + "/scaling_governor";
         std::string cur  = read_file(node);
-        if (cur == gov) continue;
-        if (!write_file(node, gov)) ok = false;
-        else LOG_DEBUG << "cpu_governor: " << cur << " → " << gov << " (" << p << ")";
+        if (cur == gov)
+            continue;
+        if (!write_file(node, gov))
+            ok = false;
+        else
+            LOG_DEBUG << "cpu_governor: " << cur << " → " << gov << " (" << p << ")";
     }
-    if (ok) LOG_INFO << "cpu_governor → " << gov;
+    if (ok)
+        LOG_INFO << "cpu_governor → " << gov;
     return ok;
 }
 
 bool PowerManager::set_cpu_epp(const std::string& epp) {
-    if (epp.empty()) return true;
+    if (epp.empty())
+        return true;
     bool ok = true;
     for (const auto& p : cpu_policy_paths()) {
         std::string node = p + "/energy_performance_preference";
         std::string cur  = read_file(node);
-        if (cur == epp) continue;
-        if (!write_file(node, epp)) ok = false;
-        else LOG_DEBUG << "cpu_epp: " << cur << " → " << epp << " (" << p << ")";
+        if (cur == epp)
+            continue;
+        if (!write_file(node, epp))
+            ok = false;
+        else
+            LOG_DEBUG << "cpu_epp: " << cur << " → " << epp << " (" << p << ")";
     }
-    if (ok) LOG_INFO << "cpu_epp → " << epp;
+    if (ok)
+        LOG_INFO << "cpu_epp → " << epp;
     return ok;
 }
 
 void PowerManager::run_command(const std::string& cmd) {
-    if (cmd.empty()) return;
+    if (cmd.empty())
+        return;
     LOG_DEBUG << "run_command: " << cmd;
     int r = system(cmd.c_str());
-    if (r != 0) LOG_WARN << "command exited " << r << ": " << cmd;
+    if (r != 0)
+        LOG_WARN << "command exited " << r << ": " << cmd;
 }
 
 void PowerManager::apply(const Profile& p) {
@@ -116,4 +141,4 @@ void PowerManager::undim(const Profile& p) {
     set_brightness_percent(p.brightness_percent);
 }
 
-} // namespace draind
+} // namespace draind::daemon

@@ -13,21 +13,22 @@
 #include "../shared/socket.hpp"
 
 #include <csignal>
+#include <cstdlib>
 #include <memory>
 #include <sys/epoll.h>
 #include <unistd.h>
 
-namespace draind {
+namespace draind::agent {
 
 static volatile sig_atomic_t s_quit = 0;
-static void on_signal(int) { s_quit = 1; }
+static void                  on_signal(int) { s_quit = 1; }
 
 struct Agent::Impl {
-    int                        daemon_fd  = -1;
-    int                        epoll_fd   = -1;
-    sock::LineBuffer           daemon_buf;
+    int                           daemon_fd = -1;
+    int                           epoll_fd  = -1;
+    sock::LineBuffer              daemon_buf;
     std::unique_ptr<IIdleMonitor> idle;
-    MprisMonitor               mpris;
+    MprisMonitor                  mpris;
 };
 
 Agent::Agent(AgentOptions opts) : m_opts(std::move(opts)) {
@@ -38,18 +39,20 @@ Agent::Agent(AgentOptions opts) : m_opts(std::move(opts)) {
 
 Agent::~Agent() {
     if (m_impl) {
-        if (m_impl->epoll_fd  >= 0) close(m_impl->epoll_fd);
-        if (m_impl->daemon_fd >= 0) close(m_impl->daemon_fd);
+        if (m_impl->epoll_fd >= 0)
+            close(m_impl->epoll_fd);
+        if (m_impl->daemon_fd >= 0)
+            close(m_impl->daemon_fd);
     }
     delete m_impl;
 }
 
 int Agent::run() {
     signal(SIGTERM, on_signal);
-    signal(SIGINT,  on_signal);
-    signal(SIGHUP,  SIG_IGN);
+    signal(SIGINT, on_signal);
+    signal(SIGHUP, SIG_IGN);
 
-    m_impl = new Impl();
+    m_impl           = new Impl();
     m_impl->epoll_fd = epoll_create1(EPOLL_CLOEXEC);
 
     connect_to_daemon();
@@ -57,12 +60,9 @@ int Agent::run() {
     if (!m_impl->mpris.init())
         LOG_WARN << "agent: MPRIS monitor unavailable";
     else {
-        m_impl->mpris.on_inhibit([this](const std::string& r) {
-            send(proto::encode_inhibit(r));
-        });
-        m_impl->mpris.on_uninhibit([this](const std::string& r) {
-            send(proto::encode_uninhibit(r));
-        });
+        m_impl->mpris.on_inhibit([this](const std::string& r) { send(proto::encode_inhibit(r)); });
+        m_impl->mpris.on_uninhibit(
+            [this](const std::string& r) { send(proto::encode_uninhibit(r)); });
         int mfd = m_impl->mpris.bus_fd();
         if (mfd >= 0) {
             epoll_event ev{};
@@ -79,11 +79,13 @@ int Agent::run() {
 void Agent::connect_to_daemon() {
     while (!s_quit) {
         m_impl->daemon_fd = sock::connect_unix(m_opts.socket_path);
-        if (m_impl->daemon_fd >= 0) break;
+        if (m_impl->daemon_fd >= 0)
+            break;
         LOG_WARN << "agent: cannot connect to daemon — retrying in 2s";
         sleep(2);
     }
-    if (s_quit) return;
+    if (s_quit)
+        return;
 
     LOG_INFO << "agent: connected to daemon";
 
@@ -99,7 +101,8 @@ void Agent::setup_idle_monitor(int dim_ms, int sleep_ms) {
     // Remove old idle monitor fd from epoll if any
     if (m_impl->idle) {
         int old_fd = m_impl->idle->fd();
-        if (old_fd >= 0) epoll_ctl(m_impl->epoll_fd, EPOLL_CTL_DEL, old_fd, nullptr);
+        if (old_fd >= 0)
+            epoll_ctl(m_impl->epoll_fd, EPOLL_CTL_DEL, old_fd, nullptr);
         m_impl->idle.reset();
     }
 
@@ -123,9 +126,9 @@ void Agent::setup_idle_monitor(int dim_ms, int sleep_ms) {
         LOG_INFO << "agent: using /dev/input idle monitor";
     }
 
-    mon->on_dim([this]()   { send(proto::encode_idle_dim());   });
+    mon->on_dim([this]() { send(proto::encode_idle_dim()); });
     mon->on_sleep([this]() { send(proto::encode_idle_sleep()); });
-    mon->on_active([this](){ send(proto::encode_active());     });
+    mon->on_active([this]() { send(proto::encode_active()); });
 
     int ifd = mon->fd();
     if (ifd >= 0) {
@@ -142,7 +145,8 @@ void Agent::loop() {
     epoll_event events[16];
     while (!s_quit) {
         int n = epoll_wait(m_impl->epoll_fd, events, 16, -1);
-        if (n < 0 && errno != EINTR) continue;
+        if (n < 0 && errno != EINTR)
+            continue;
 
         m_impl->mpris.poll();
 
@@ -155,7 +159,8 @@ void Agent::loop() {
                     return;
                 }
                 for (auto& l : lines) {
-                    if (!l.empty()) on_daemon_line(l);
+                    if (!l.empty())
+                        on_daemon_line(l);
                 }
             } else if (m_impl->idle && fd == m_impl->idle->fd()) {
                 m_impl->idle->poll();
@@ -167,8 +172,9 @@ void Agent::loop() {
 
 void Agent::on_daemon_line(const std::string& line) {
     json::Value msg;
-    try { msg = proto::decode(line); }
-    catch (...) {
+    try {
+        msg = proto::decode(line);
+    } catch (...) {
         LOG_WARN << "agent: malformed message: " << line;
         return;
     }
@@ -176,13 +182,18 @@ void Agent::on_daemon_line(const std::string& line) {
     std::string type = proto::msg_type(msg);
 
     if (type == proto::T_CONFIG) {
-        int dim   = (int)msg.num("dim_timeout",   0) * 1000;
+        int dim   = (int)msg.num("dim_timeout", 0) * 1000;
         int sleep = (int)msg.num("sleep_timeout", 0) * 1000;
         LOG_INFO << "agent: received config dim=" << dim << "ms sleep=" << sleep << "ms";
         if (m_impl->idle)
             m_impl->idle->set_timeouts(dim, sleep);
         else
             setup_idle_monitor(dim, sleep);
+    } else if (type == proto::T_LOCK) {
+        run_lock_cmd();
+    } else if (type == proto::T_PRE_SLEEP) {
+        run_before_sleep_cmd();
+        send(proto::encode_ack());
     } else if (type == proto::T_ACK) {
         // nothing
     } else {
@@ -190,19 +201,46 @@ void Agent::on_daemon_line(const std::string& line) {
     }
 }
 
+void Agent::run_lock_cmd() {
+    if (m_opts.lock_cmd.empty()) {
+        LOG_DEBUG << "agent: lock requested but no lock_cmd configured";
+        return;
+    }
+    LOG_INFO << "agent: running lock_cmd";
+    // Fork so we don't block the event loop waiting for the locker.
+    pid_t pid = fork();
+    if (pid == 0) {
+        setsid();
+        execl("/bin/sh", "sh", "-c", m_opts.lock_cmd.c_str(), nullptr);
+        _exit(127);
+    } else if (pid < 0) {
+        LOG_WARN << "agent: fork failed for lock_cmd: " << strerror(errno);
+    }
+}
+
+void Agent::run_before_sleep_cmd() {
+    if (m_opts.before_sleep_cmd.empty())
+        return;
+    LOG_INFO << "agent: running before_sleep_cmd";
+    int r = system(m_opts.before_sleep_cmd.c_str());
+    if (r != 0)
+        LOG_WARN << "agent: before_sleep_cmd exited " << r;
+}
+
 void Agent::on_daemon_disconnect() {
     LOG_WARN << "agent: daemon disconnected — reconnecting";
     epoll_ctl(m_impl->epoll_fd, EPOLL_CTL_DEL, m_impl->daemon_fd, nullptr);
     close(m_impl->daemon_fd);
-    m_impl->daemon_fd = -1;
+    m_impl->daemon_fd  = -1;
     m_impl->daemon_buf = {};
     connect_to_daemon();
 }
 
 void Agent::send(const std::string& msg) {
-    if (m_impl->daemon_fd < 0) return;
+    if (m_impl->daemon_fd < 0)
+        return;
     if (!sock::write_line(m_impl->daemon_fd, msg))
         LOG_WARN << "agent: write to daemon failed";
 }
 
-} // namespace draind
+} // namespace draind::agent

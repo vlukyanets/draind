@@ -43,15 +43,17 @@ ninja -C build
 sudo ninja -C build install
 ```
 
+After installing, follow the configuration steps below before starting the services.
+
 ## Configuration
 
-The config file is at `/etc/draind/draind.json`. Edit it to adjust timeouts and profile settings, then reload:
+draind has two config files: one for the system daemon (root), one per user for the agent.
 
-```sh
-draind-ctl reload-config
-```
+### 1. Daemon — `/etc/draind/draind.json`
 
-### Profile fields
+Controls power profiles: CPU governor, brightness, idle timeouts, and hardware button behaviour. The default file installed at `/etc/draind/draind.json` is a reasonable starting point — adjust timeouts and brightness values for your hardware.
+
+#### Profile fields
 
 | Field | Description | Default |
 |---|---|---|
@@ -61,14 +63,41 @@ draind-ctl reload-config
 | `dim_brightness_percent` | Brightness when dimmed (%) | `20` |
 | `dim_timeout` | Idle time before dim (seconds) | `300` |
 | `sleep_timeout` | Idle time before suspend (seconds, `0` = disabled) | `600` |
-| `before_sleep_cmd` | Command to run before suspend | — |
 | `lid_close_action` | Action on lid close | `suspend` |
 | `power_button_action` | Action on power button | `poweroff` |
 | `sleep_button_action` | Action on sleep button | `suspend` |
 
 **Hardware action values:** `none`, `suspend`, `hibernate`, `hybrid-sleep`, `poweroff`
 
-### Example
+Apply changes without restarting:
+
+```sh
+draind-ctl reload-config
+```
+
+### 2. Agent — `~/.config/draind/draind-agent.json`
+
+Controls per-user, per-session behaviour. Create this file for each user who will use draind. If it does not exist, the system default at `/etc/xdg/draind/draind-agent.json` is used (empty commands — no lock, no pre-sleep hook).
+
+#### Agent fields
+
+| Field | Description |
+|---|---|
+| `lock_cmd` | Shell command to lock the screen before suspend |
+| `before_sleep_cmd` | Shell command run just before suspend (synchronous; suspend waits for it) |
+
+#### Example
+
+```json
+{
+  "lock_cmd": "loginctl lock-session",
+  "before_sleep_cmd": ""
+}
+```
+
+`lock_cmd` only runs for the active session (the one at the seat). `before_sleep_cmd` runs for all logged-in users before the system suspends.
+
+### Example daemon config
 
 ```json
 {
@@ -93,9 +122,8 @@ draind-ctl reload-config
 ## Usage
 
 ```sh
-# Both services are enabled automatically on install.
-# To start them manually after building from source:
-systemctl enable --now draind
+# Enable and start services (done automatically on AUR install):
+sudo systemctl enable --now draind
 systemctl --user enable --now draind-agent
 
 # CLI

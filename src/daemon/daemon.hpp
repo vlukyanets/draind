@@ -1,10 +1,11 @@
 #pragma once
+#include "../shared/config.hpp"
 #include "../shared/json.hpp"
 #include "../shared/logger.hpp"
 #include <csignal>
 #include <string>
 
-namespace draind {
+namespace draind::daemon {
 
 struct DaemonOptions {
     std::string config_path = "/etc/draind/draind.json";
@@ -46,9 +47,11 @@ class Daemon {
     bool has_any_inhibit() const;
     void send_config(int fd);
     void broadcast_config();
+    void send_lock_to_active_agent();
+    void do_suspend(const std::string& action = "suspend");
 
     static volatile sig_atomic_t s_quit;
-    static void signal_handler(int);
+    static void                  signal_handler(int);
 
     struct Impl;
     Impl*         m_impl = nullptr;
@@ -56,4 +59,4 @@ class Daemon {
     bool          m_dimmed = false;
 };
 
-} // namespace draind
+} // namespace draind::daemon

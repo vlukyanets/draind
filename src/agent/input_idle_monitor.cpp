@@ -10,7 +10,7 @@
 #include <sys/timerfd.h>
 #include <unistd.h>
 
-namespace draind {
+namespace draind::agent {
 
 static uint64_t mono_ms() {
     struct timespec ts{};
@@ -19,8 +19,10 @@ static uint64_t mono_ms() {
 }
 
 InputIdleMonitor::~InputIdleMonitor() {
-    if (m_timer_fd >= 0) close(m_timer_fd);
-    if (m_epoll_fd >= 0) close(m_epoll_fd);
+    if (m_timer_fd >= 0)
+        close(m_timer_fd);
+    if (m_epoll_fd >= 0)
+        close(m_epoll_fd);
 }
 
 bool InputIdleMonitor::init(int dim_ms, int sleep_ms) {
@@ -56,15 +58,18 @@ bool InputIdleMonitor::init(int dim_ms, int sleep_ms) {
 
 bool InputIdleMonitor::open_input_devices() {
     DIR* dir = opendir("/dev/input");
-    if (!dir) return false;
+    if (!dir)
+        return false;
 
-    int count = 0;
+    int     count = 0;
     dirent* de;
     while ((de = readdir(dir))) {
-        if (strncmp(de->d_name, "event", 5) != 0) continue;
+        if (strncmp(de->d_name, "event", 5) != 0)
+            continue;
         std::string path = std::string("/dev/input/") + de->d_name;
-        int fd = open(path.c_str(), O_RDONLY | O_NONBLOCK | O_CLOEXEC);
-        if (fd < 0) continue;
+        int         fd   = open(path.c_str(), O_RDONLY | O_NONBLOCK | O_CLOEXEC);
+        if (fd < 0)
+            continue;
         epoll_event ev{};
         ev.events  = EPOLLIN;
         ev.data.fd = fd;
@@ -83,11 +88,12 @@ void InputIdleMonitor::set_timeouts(int dim_ms, int sleep_ms) {
 }
 
 void InputIdleMonitor::reset_idle_timer() {
-    if (m_timer_fd < 0) return;
+    if (m_timer_fd < 0)
+        return;
     // Fire at the earliest of dim_ms or sleep_ms
-    int first_ms = m_dim_ms > 0 ? m_dim_ms
-                 : m_sleep_ms > 0 ? m_sleep_ms : 0;
-    if (first_ms <= 0) return;
+    int first_ms = m_dim_ms > 0 ? m_dim_ms : m_sleep_ms > 0 ? m_sleep_ms : 0;
+    if (first_ms <= 0)
+        return;
 
     itimerspec its{};
     its.it_value.tv_sec  = first_ms / 1000;
@@ -99,7 +105,7 @@ void InputIdleMonitor::reset_idle_timer() {
 
 void InputIdleMonitor::poll() {
     epoll_event events[16];
-    int n = epoll_wait(m_epoll_fd, events, 16, 0);
+    int         n = epoll_wait(m_epoll_fd, events, 16, 0);
     for (int i = 0; i < n; ++i) {
         int efd = events[i].data.fd;
         if (efd == m_timer_fd) {
@@ -110,12 +116,14 @@ void InputIdleMonitor::poll() {
         } else {
             // Drain input device (we don't care about the event content)
             char buf[256];
-            while (read(efd, buf, sizeof(buf)) > 0) {}
+            while (read(efd, buf, sizeof(buf)) > 0) {
+            }
 
-            bool was_idle = m_dimmed || m_sleeping;
+            bool was_idle   = m_dimmed || m_sleeping;
             m_last_event_ms = mono_ms();
             reset_idle_timer();
-            if (was_idle && m_on_active) m_on_active();
+            if (was_idle && m_on_active)
+                m_on_active();
         }
     }
 }
@@ -127,18 +135,21 @@ void InputIdleMonitor::on_timeout() {
     if (!m_sleeping && m_sleep_ms > 0 && (int)elapsed >= m_sleep_ms) {
         m_sleeping = true;
         LOG_DEBUG << "input_idle: sleep threshold reached";
-        if (m_on_sleep) m_on_sleep();
+        if (m_on_sleep)
+            m_on_sleep();
         return;
     }
     if (!m_dimmed && m_dim_ms > 0 && (int)elapsed >= m_dim_ms) {
         m_dimmed = true;
         LOG_DEBUG << "input_idle: dim threshold reached";
-        if (m_on_dim) m_on_dim();
+        if (m_on_dim)
+            m_on_dim();
 
         // Set next timer for sleep if configured
         if (m_sleep_ms > 0 && !m_sleeping) {
             int remain_ms = m_sleep_ms - (int)elapsed;
-            if (remain_ms < 1) remain_ms = 1;
+            if (remain_ms < 1)
+                remain_ms = 1;
             itimerspec its{};
             its.it_value.tv_sec  = remain_ms / 1000;
             its.it_value.tv_nsec = (remain_ms % 1000) * 1000000LL;
@@ -147,4 +158,4 @@ void InputIdleMonitor::on_timeout() {
     }
 }
 
-} // namespace draind
+} // namespace draind::agent

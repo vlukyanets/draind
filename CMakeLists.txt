@@ -74,6 +74,7 @@ target_link_libraries(draind PRIVATE ${SYSTEMD_LIB})
 set(AGENT_SOURCES
     src/agent/main.cpp
     src/agent/agent.cpp
+    src/agent/agent_config.cpp
     src/agent/mpris_monitor.cpp
     src/agent/input_idle_monitor.cpp
     ${SHARED_SOURCES}
@@ -110,6 +111,8 @@ install(TARGETS draind draind-agent draind-ctl
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(FILES config/draind.json
     DESTINATION /etc/draind)
+install(FILES config/draind-agent.json
+    DESTINATION /etc/xdg/draind)
 install(FILES config/draind.service
     DESTINATION /usr/lib/systemd/system)
 install(FILES config/draind-agent.service

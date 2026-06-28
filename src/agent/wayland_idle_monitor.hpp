@@ -6,7 +6,7 @@
 // Generated from ext-idle-notify-v1.xml by wayland-scanner:
 #include "ext-idle-notify-v1-client-protocol.h"
 
-namespace draind {
+namespace draind::agent {
 
 class WaylandIdleMonitor : public IIdleMonitor {
   public:
@@ -25,14 +25,14 @@ class WaylandIdleMonitor : public IIdleMonitor {
     void destroy_notifications();
     bool create_notifications(int dim_ms, int sleep_ms);
 
-    wl_display*                m_display    = nullptr;
-    wl_registry*               m_registry   = nullptr;
-    ext_idle_notifier_v1*      m_notifier   = nullptr;
-    wl_seat*                   m_seat       = nullptr;
-    ext_idle_notification_v1*  m_notif_dim  = nullptr;
-    ext_idle_notification_v1*  m_notif_sleep = nullptr;
+    wl_display*               m_display     = nullptr;
+    wl_registry*              m_registry    = nullptr;
+    ext_idle_notifier_v1*     m_notifier    = nullptr;
+    wl_seat*                  m_seat        = nullptr;
+    ext_idle_notification_v1* m_notif_dim   = nullptr;
+    ext_idle_notification_v1* m_notif_sleep = nullptr;
 };
 
-} // namespace draind
+} // namespace draind::agent
 
 #endif // HAVE_WAYLAND
