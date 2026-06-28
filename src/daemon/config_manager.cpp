@@ -39,13 +39,13 @@ void ConfigManager::persist_active() {
         LOG_WARN << "config: cannot read " << m_path << " for update";
         return;
     }
-    std::string text((std::istreambuf_iterator<char>(in)),
-                      std::istreambuf_iterator<char>());
+    std::string text((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
     in.close();
 
     json::Value root;
-    try { root = json::parse(text); }
-    catch (const std::exception& e) {
+    try {
+        root = json::parse(text);
+    } catch (const std::exception& e) {
         LOG_WARN << "config: cannot parse " << m_path << " for update: " << e.what();
         return;
     }

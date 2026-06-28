@@ -110,7 +110,7 @@ void InputIdleMonitor::poll() {
         int efd = events[i].data.fd;
         if (efd == m_timer_fd) {
             // Drain timerfd
-            uint64_t exp;
+            uint64_t              exp;
             [[maybe_unused]] auto r = read(m_timer_fd, &exp, sizeof(exp));
             on_timeout();
         } else {

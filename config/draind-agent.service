@@ -1,6 +1,7 @@
 [Unit]
 Description=draind per-user agent
-After=default.target
+After=default.target draind.service
+Wants=draind.service
 ConditionUser=!@system
 ConditionUser=!root
 
