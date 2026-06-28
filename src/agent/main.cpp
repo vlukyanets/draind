@@ -6,6 +6,7 @@
 #include <iostream>
 #include <pwd.h>
 #include <stdexcept>
+#include <systemd/sd-login.h>
 #include <unistd.h>
 
 static std::string env_str(const char* key, const char* def = "") {
@@ -34,6 +35,16 @@ int main(int argc, char** argv) {
     opts.uid        = (uint32_t)getuid();
     opts.session_id = env_str("XDG_SESSION_ID");
 
+    // XDG_SESSION_ID may not be set in systemd user service environments
+    // (imported after default.target). Fall back to querying logind directly.
+    if (opts.session_id.empty()) {
+        char* sid = nullptr;
+        if (sd_pid_get_session(getpid(), &sid) >= 0 && sid) {
+            opts.session_id = std::string(sid);
+            free(sid);
+        }
+    }
+
     for (int i = 1; i < argc; ++i) {
         std::string a = argv[i];
         if ((a == "-s" || a == "--socket") && i + 1 < argc) {
@@ -57,7 +68,7 @@ int main(int argc, char** argv) {
     }
 
     if (opts.session_id.empty())
-        LOG_WARN << "agent: XDG_SESSION_ID not set — session tracking will be limited";
+        LOG_WARN << "agent: could not determine session ID — lock routing will not work";
 
     try {
         // User config takes priority; fall back to system default if absent.

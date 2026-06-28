@@ -337,6 +337,17 @@ void Daemon::on_ctl(int fd, const json::Value& msg) {
         r["ok"] = true;
         m_impl->server.send(fd, proto::encode_ctl_reply(std::move(r)));
 
+    } else if (cmd == "list_inhibitors") {
+        json::Value r;
+        r["ok"] = true;
+        json::Array inhibitors;
+        for (const auto& [afd, agent] : m_impl->agents)
+            for (const auto& reason : agent.inhibits)
+                inhibitors.push_back(json::Value(
+                    agent.session_id.empty() ? reason : agent.session_id + ": " + reason));
+        r["inhibitors"] = json::Value(std::move(inhibitors));
+        m_impl->server.send(fd, proto::encode_ctl_reply(std::move(r)));
+
     } else if (cmd == "reload_config") {
         try {
             m_impl->config.reload();
@@ -395,6 +406,9 @@ void Daemon::send_lock_to_active_agent() {
             return;
         }
     }
+    LOG_WARN << "daemon: no agent matched active session — lock not sent"
+             << " (active=" << m_impl->sessions.active_session_id() << ","
+             << " agents=" << m_impl->agents.size() << ")";
 }
 
 void Daemon::do_suspend(const std::string& action) {
