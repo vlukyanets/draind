@@ -113,6 +113,11 @@ If absent, the system default `/etc/xdg/draind/draind-agent.json` is used.
 
 | Key | Runs as | When | Notes |
 |-----|---------|------|-------|
-| `lock_cmd` | user | pre-suspend | active session only; forked (non-blocking) |
+| `lock_cmd` | user | on lock/pre-suspend | active session only; forked (non-blocking) |
 | `before_sleep_cmd` | user | pre-suspend | all sessions; synchronous, acked before suspend |
+
+Both commands are launched via `systemd-run --user --scope` so they inherit the
+current user manager environment (including `NIRI_SOCKET`, `WAYLAND_DISPLAY`, and
+other variables imported by the compositor after the agent started). A direct
+`/bin/sh -c` exec is used as a fallback if `systemd-run` is unavailable.
 

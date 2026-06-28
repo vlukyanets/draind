@@ -21,7 +21,11 @@ Sent once immediately after connecting.
 {"type":"hello","session_id":"3","uid":1000}
 ```
 
-- `session_id`: logind session ID (from `$XDG_SESSION_ID` or logind `ListSessions`)
+- `session_id`: logind session ID (from `$XDG_SESSION_ID` or `sd_pid_get_session`);
+  may be empty if the agent process is not yet associated with a logind session
+  (e.g. the service started before the compositor imported the session environment).
+  The daemon routes lock/sleep signals to the sole connected agent when `session_id`
+  is empty and only one agent is registered.
 - `uid`: numeric UID of the connecting user
 
 ### IDLE_DIM
@@ -71,8 +75,9 @@ The agent uses these values to configure Wayland idle notification timeouts.
 ```
 
 ### LOCK
-Sent to the active session's agent just before the daemon suspends. The agent runs
-the user-configured `lock_cmd` as a background process (fire-and-forget).
+Sent to the active session's agent when a lock is requested — either via
+`draind-ctl lock` or automatically just before the daemon suspends. The agent runs
+the user-configured `lock_cmd` via `systemd-run --user --scope` (fire-and-forget).
 
 ```json
 {"type":"lock"}
@@ -120,13 +125,30 @@ Sent in response to INHIBIT / UNINHIBIT to confirm receipt.
 {"type":"ctl","cmd":"reload_config"}
 ```
 
+### LIST_INHIBITORS
+
+```json
+{"type":"ctl","cmd":"list_inhibitors"}
+```
+
+### LOCK
+
+```json
+{"type":"ctl","cmd":"lock"}
+```
+
+Sends a LOCK message to the active session's agent. Returns `"ok": true` even if
+no agent is currently connected (the lock is silently dropped).
+
 ## Daemon → Ctl messages
 
 All ctl responses include `"ok": true|false`. On error, an `"error"` string is included.
 
 ```json
-{"ok":true,"active_profile":"balanced","dimmed":false,"idle_seconds":42}
+{"ok":true,"active_profile":"balanced","dimmed":false,"active_session":"3"}
 {"ok":true,"profiles":["performance","balanced","powersave"]}
+{"ok":true,"inhibitors":["3: VLC: Playing video"]}
+{"ok":true}
 {"ok":false,"error":"profile not found"}
 ```
 

@@ -1,6 +1,6 @@
 [Unit]
 Description=draind per-user agent
-After=default.target draind.service
+After=graphical-session.target draind.service
 Wants=draind.service
 ConditionUser=!@system
 ConditionUser=!root
@@ -12,4 +12,4 @@ Restart=on-failure
 RestartSec=2
 
 [Install]
-WantedBy=default.target
+WantedBy=graphical-session.target
