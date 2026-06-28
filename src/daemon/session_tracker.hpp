@@ -23,6 +23,9 @@ class SessionTracker {
     const std::string& active_session_id() const { return m_active_session_id; }
     bool               is_active(const std::string& session_id) const;
 
+    // Direct logind query: is this session active right now?
+    static bool session_is_active(const std::string& session_id);
+
     // Called from sd-bus signal handler.
     int handle_seat_properties(sd_bus_message* m);
 

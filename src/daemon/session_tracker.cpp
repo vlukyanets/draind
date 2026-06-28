@@ -2,6 +2,7 @@
 #include "../shared/logger.hpp"
 
 #include <cstring>
+#include <systemd/sd-login.h>
 
 namespace draind::daemon {
 
@@ -142,6 +143,12 @@ void SessionTracker::refresh_active_session() {
         sd_bus_message_exit_container(rep.m);
     }
     LOG_INFO << "session_tracker: initial active session=" << m_active_session_id;
+}
+
+bool SessionTracker::session_is_active(const std::string& session_id) {
+    if (session_id.empty())
+        return false;
+    return sd_session_is_active(session_id.c_str()) > 0;
 }
 
 } // namespace draind::daemon

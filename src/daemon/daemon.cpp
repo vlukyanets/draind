@@ -399,9 +399,19 @@ void Daemon::broadcast_config() {
 }
 
 void Daemon::send_lock_to_active_agent() {
+    // Primary: match against seat0 active session.
     for (const auto& [fd, agent] : m_impl->agents) {
         if (m_impl->sessions.is_active(agent.session_id)) {
             LOG_DEBUG << "daemon: sending lock to session=" << agent.session_id;
+            m_impl->server.send(fd, proto::encode_lock());
+            return;
+        }
+    }
+    // Fallback: some compositors (e.g. greetd) keep an extra session active on
+    // the seat; ask logind directly whether each agent's own session is active.
+    for (const auto& [fd, agent] : m_impl->agents) {
+        if (SessionTracker::session_is_active(agent.session_id)) {
+            LOG_DEBUG << "daemon: sending lock to session=" << agent.session_id << " (fallback)";
             m_impl->server.send(fd, proto::encode_lock());
             return;
         }
