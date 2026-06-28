@@ -331,6 +331,12 @@ void Daemon::on_ctl(int fd, const json::Value& msg) {
         r["profiles"] = json::Value(std::move(arr));
         m_impl->server.send(fd, proto::encode_ctl_reply(std::move(r)));
 
+    } else if (cmd == "lock") {
+        send_lock_to_active_agent();
+        json::Value r;
+        r["ok"] = true;
+        m_impl->server.send(fd, proto::encode_ctl_reply(std::move(r)));
+
     } else if (cmd == "reload_config") {
         try {
             m_impl->config.reload();

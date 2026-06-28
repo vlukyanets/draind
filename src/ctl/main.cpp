@@ -19,6 +19,7 @@ static void usage(const char* argv0) {
               << "  " << argv0 << " list-profiles\n"
               << "  " << argv0 << " set-profile <name>\n"
               << "  " << argv0 << " reload-config\n"
+              << "  " << argv0 << " lock\n"
               << "\nOptions:\n"
               << "  -s <socket>    override socket path\n";
 }
@@ -73,6 +74,7 @@ int main(int argc, char** argv) {
         }
         profile = argv[i++];
     } else if (cmd == "reload-config") {
+    } else if (cmd == "lock") {
     } else {
         std::cerr << "unknown command: " << cmd << "\n";
         usage(argv[0]);
@@ -95,6 +97,8 @@ int main(int argc, char** argv) {
         req = proto::encode_ctl("set_profile", profile);
     else if (cmd == "reload-config")
         req = proto::encode_ctl("reload_config");
+    else if (cmd == "lock")
+        req = proto::encode_ctl("lock");
 
     sock::write_line(fd, req);
 
