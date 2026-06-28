@@ -115,8 +115,6 @@ install(FILES config/draind-agent.json
     DESTINATION /etc/xdg/draind)
 install(FILES config/draind.service
     DESTINATION /usr/lib/systemd/system)
-install(FILES config/draind-agent.service
-    DESTINATION /usr/lib/systemd/user)
 install(FILES config/draind-sysusers.conf
     DESTINATION /usr/lib/sysusers.d RENAME draind.conf)
 install(FILES config/logind-draind.conf

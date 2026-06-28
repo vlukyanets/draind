@@ -35,8 +35,10 @@ Responsibilities:
   in case the compositor does not bridge D-Bus screensaver inhibitors to Wayland idle)
 - Run the user-configured `lock_cmd` when the daemon sends a `lock` message
 
-One agent instance runs per logged-in user, started automatically by systemd user
-session (`WantedBy=default.target`).
+One agent instance runs per logged-in user. It is started by the compositor
+(e.g. via `spawn-at-startup` in niri's `config.kdl`) so it inherits the full
+compositor environment (`WAYLAND_DISPLAY`, `NIRI_SOCKET`, `XDG_SESSION_ID`, etc.)
+from the moment it starts.
 
 ## Multi-user behaviour
 
@@ -116,8 +118,7 @@ If absent, the system default `/etc/xdg/draind/draind-agent.json` is used.
 | `lock_cmd` | user | on lock/pre-suspend | active session only; forked (non-blocking) |
 | `before_sleep_cmd` | user | pre-suspend | all sessions; synchronous, acked before suspend |
 
-Both commands are launched via `systemd-run --user --scope` so they inherit the
-current user manager environment (including `NIRI_SOCKET`, `WAYLAND_DISPLAY`, and
-other variables imported by the compositor after the agent started). A direct
-`/bin/sh -c` exec is used as a fallback if `systemd-run` is unavailable.
+Both commands are run via `/bin/sh -c` in a forked child and inherit the agent's
+environment. Because the agent is started by the compositor, this environment
+already contains `NIRI_SOCKET`, `WAYLAND_DISPLAY`, and other session variables.
 

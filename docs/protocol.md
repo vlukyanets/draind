@@ -77,7 +77,7 @@ The agent uses these values to configure Wayland idle notification timeouts.
 ### LOCK
 Sent to the active session's agent when a lock is requested — either via
 `draind-ctl lock` or automatically just before the daemon suspends. The agent runs
-the user-configured `lock_cmd` via `systemd-run --user --scope` (fire-and-forget).
+the user-configured `lock_cmd` as a background process (fire-and-forget).
 
 ```json
 {"type":"lock"}

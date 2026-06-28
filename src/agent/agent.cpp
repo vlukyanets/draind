@@ -209,22 +209,15 @@ void Agent::run_lock_cmd() {
         return;
     }
     LOG_INFO << "agent: running lock_cmd";
-    // Run via systemd-run so the child inherits the current user manager
-    // environment (NIRI_SOCKET, WAYLAND_DISPLAY, etc.), which may have been
-    // imported by the compositor after this process started.
     pid_t pid = fork();
+    if (pid < 0) {
+        LOG_WARN << "agent: fork failed for lock_cmd: " << strerror(errno);
+        return;
+    }
     if (pid == 0) {
         setsid();
-        // Exec via systemd-run to inherit the current user manager environment
-        // (NIRI_SOCKET, WAYLAND_DISPLAY, etc. imported after agent startup).
-        // execl only returns on failure, so the fallback runs iff systemd-run
-        // is unavailable.
-        execl("/usr/bin/systemd-run", "systemd-run", "--user", "--scope",
-              "/bin/sh", "-c", m_opts.lock_cmd.c_str(), nullptr);
         execl("/bin/sh", "sh", "-c", m_opts.lock_cmd.c_str(), nullptr);
         _exit(127);
-    } else if (pid < 0) {
-        LOG_WARN << "agent: fork failed for lock_cmd: " << strerror(errno);
     }
 }
 
@@ -232,22 +225,21 @@ void Agent::run_before_sleep_cmd() {
     if (m_opts.before_sleep_cmd.empty())
         return;
     LOG_INFO << "agent: running before_sleep_cmd";
-    // Run synchronously via systemd-run so the child inherits the current user
-    // manager environment (NIRI_SOCKET, WAYLAND_DISPLAY, etc.).
     pid_t pid = fork();
-    if (pid == 0) {
-        setsid();
-        execl("/usr/bin/systemd-run", "systemd-run", "--user", "--scope", "--wait",
-              "/bin/sh", "-c", m_opts.before_sleep_cmd.c_str(), nullptr);
-        execl("/bin/sh", "sh", "-c", m_opts.before_sleep_cmd.c_str(), nullptr);
-        _exit(127);
-    } else if (pid < 0) {
+    if (pid < 0) {
         LOG_WARN << "agent: fork failed for before_sleep_cmd: " << strerror(errno);
         return;
     }
+    if (pid == 0) {
+        setsid();
+        execl("/bin/sh", "sh", "-c", m_opts.before_sleep_cmd.c_str(), nullptr);
+        _exit(127);
+    }
     int status = 0;
     waitpid(pid, &status, 0);
-    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
+    if (WIFSIGNALED(status))
+        LOG_WARN << "agent: before_sleep_cmd killed by signal " << WTERMSIG(status);
+    else if (WIFEXITED(status) && WEXITSTATUS(status) != 0)
         LOG_WARN << "agent: before_sleep_cmd exited " << WEXITSTATUS(status);
 }
 
