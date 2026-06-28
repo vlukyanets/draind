@@ -1,5 +1,5 @@
 {
-  "default_profile": "balanced",
+  "active_profile": "balanced",
   "profiles": [
     {
       "name": "performance",
@@ -7,11 +7,11 @@
       "cpu_epp": "performance",
       "brightness_percent": 100,
       "dim_brightness_percent": 20,
-      "dim_timeout": 120,
+      "dim_timeout": 300,
       "sleep_timeout": 0,
       "lid_close_action": "",
-      "power_button_action": "",
-      "sleep_button_action": ""
+      "power_button_action": "poweroff",
+      "sleep_button_action": "suspend"
     },
     {
       "name": "balanced",
@@ -20,9 +20,9 @@
       "brightness_percent": 70,
       "dim_brightness_percent": 10,
       "dim_timeout": 180,
-      "sleep_timeout": 300,
-      "lid_close_action": "suspend",
-      "power_button_action": "suspend",
+      "sleep_timeout": 600,
+      "lid_close_action": "",
+      "power_button_action": "poweroff",
       "sleep_button_action": "suspend"
     },
     {
@@ -32,9 +32,9 @@
       "brightness_percent": 40,
       "dim_brightness_percent": 5,
       "dim_timeout": 60,
-      "sleep_timeout": 120,
+      "sleep_timeout": 300,
       "lid_close_action": "suspend",
-      "power_button_action": "suspend",
+      "power_button_action": "poweroff",
       "sleep_button_action": "suspend"
     }
   ]

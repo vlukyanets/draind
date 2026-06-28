@@ -353,4 +353,55 @@ inline std::string dump(const Value& val) {
     return "null";
 }
 
+namespace detail {
+inline void dump_pretty(const Value& val, std::string& out, int indent, int depth) {
+    const std::string pad(depth * indent, ' ');
+    const std::string pad1((depth + 1) * indent, ' ');
+
+    if (val.is_array()) {
+        const auto& arr = val.get_array();
+        if (arr.empty()) {
+            out += "[]";
+            return;
+        }
+        out += "[\n";
+        for (size_t i = 0; i < arr.size(); ++i) {
+            out += pad1;
+            dump_pretty(arr[i], out, indent, depth + 1);
+            if (i + 1 < arr.size())
+                out += ',';
+            out += '\n';
+        }
+        out += pad + ']';
+        return;
+    }
+    if (val.is_object()) {
+        const auto& obj = val.get_object();
+        if (obj.empty()) {
+            out += "{}";
+            return;
+        }
+        out += "{\n";
+        size_t i = 0;
+        for (const auto& [k, v] : obj) {
+            out += pad1 + escape(k) + ": ";
+            dump_pretty(v, out, indent, depth + 1);
+            if (++i < obj.size())
+                out += ',';
+            out += '\n';
+        }
+        out += pad + '}';
+        return;
+    }
+    out += dump(val);
+}
+} // namespace detail
+
+inline std::string dump_pretty(const Value& val, int indent = 2) {
+    std::string out;
+    detail::dump_pretty(val, out, indent, 0);
+    out += '\n';
+    return out;
+}
+
 } // namespace json

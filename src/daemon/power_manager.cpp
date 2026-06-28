@@ -77,6 +77,17 @@ bool PowerManager::set_brightness_percent(int pct) {
     return write_file(base + "/brightness", std::to_string(target));
 }
 
+int PowerManager::get_brightness_percent() const {
+    std::string base = find_backlight_path();
+    if (base.empty()) return -1;
+    std::string cur_s = read_file(base + "/brightness");
+    std::string max_s = read_file(base + "/max_brightness");
+    if (cur_s.empty() || max_s.empty()) return -1;
+    int max_val = std::stoi(max_s);
+    if (max_val <= 0) return -1;
+    return std::stoi(cur_s) * 100 / max_val;
+}
+
 bool PowerManager::set_cpu_governor(const std::string& gov) {
     if (gov.empty())
         return true;
@@ -132,13 +143,19 @@ void PowerManager::apply(const Profile& p) {
 }
 
 void PowerManager::dim(const Profile& p) {
-    LOG_INFO << "dimming to " << p.dim_brightness_percent << "%";
+    m_user_brightness = get_brightness_percent();
+    if (m_user_brightness < 0)
+        m_user_brightness = p.brightness_percent;
+    LOG_INFO << "dimming to " << p.dim_brightness_percent
+             << "% (user was at " << m_user_brightness << "%)";
     set_brightness_percent(p.dim_brightness_percent);
 }
 
 void PowerManager::undim(const Profile& p) {
-    LOG_INFO << "restoring brightness to " << p.brightness_percent << "%";
-    set_brightness_percent(p.brightness_percent);
+    int restore = (m_user_brightness >= 0) ? m_user_brightness : p.brightness_percent;
+    LOG_INFO << "restoring brightness to " << restore << "%";
+    set_brightness_percent(restore);
+    m_user_brightness = -1;
 }
 
 } // namespace draind::daemon

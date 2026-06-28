@@ -64,10 +64,10 @@ Controls power profiles: CPU governor, brightness, idle timeouts, and hardware b
 | `dim_timeout` | Idle time before dim (seconds) | `300` |
 | `sleep_timeout` | Idle time before suspend (seconds, `0` = disabled) | `600` |
 | `lid_close_action` | Action on lid close | `suspend` |
-| `power_button_action` | Action on power button | `poweroff` |
+| `power_button_action` | Action on power button | `suspend` |
 | `sleep_button_action` | Action on sleep button | `suspend` |
 
-**Hardware action values:** `none`, `suspend`, `hibernate`, `hybrid-sleep`, `poweroff`
+**Hardware action values:** `""` (ignore), `none`, `suspend`, `hibernate`, `hybrid-sleep`, `poweroff`
 
 Apply changes without restarting:
 
@@ -97,12 +97,24 @@ Controls per-user, per-session behaviour. Create this file for each user who wil
 
 `lock_cmd` only runs for the active session (the one at the seat). `before_sleep_cmd` runs for all logged-in users before the system suspends.
 
-### Example daemon config
+### Default daemon config
 
 ```json
 {
-  "default_profile": "balanced",
+  "active_profile": "balanced",
   "profiles": [
+    {
+      "name": "performance",
+      "cpu_governor": "performance",
+      "cpu_epp": "performance",
+      "brightness_percent": 100,
+      "dim_brightness_percent": 20,
+      "dim_timeout": 300,
+      "sleep_timeout": 0,
+      "lid_close_action": "",
+      "power_button_action": "poweroff",
+      "sleep_button_action": "suspend"
+    },
     {
       "name": "balanced",
       "cpu_governor": "powersave",
@@ -110,6 +122,18 @@ Controls per-user, per-session behaviour. Create this file for each user who wil
       "brightness_percent": 70,
       "dim_brightness_percent": 10,
       "dim_timeout": 180,
+      "sleep_timeout": 600,
+      "lid_close_action": "",
+      "power_button_action": "poweroff",
+      "sleep_button_action": "suspend"
+    },
+    {
+      "name": "powersave",
+      "cpu_governor": "powersave",
+      "cpu_epp": "power",
+      "brightness_percent": 40,
+      "dim_brightness_percent": 5,
+      "dim_timeout": 60,
       "sleep_timeout": 300,
       "lid_close_action": "suspend",
       "power_button_action": "poweroff",

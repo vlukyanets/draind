@@ -22,6 +22,8 @@ class ConfigManager {
     void on_change(std::function<void(const Config&)> cb) { m_on_change = std::move(cb); }
 
   private:
+    void persist_active();
+
     std::string                        m_path;
     Config                             m_config;
     std::string                        m_active;

@@ -16,16 +16,16 @@ struct Profile {
     int         dim_timeout            = 300; // seconds; 0 = disabled
     int         sleep_timeout          = 600; // seconds; 0 = disabled
     HwAction    lid_close_action       = "suspend";
-    HwAction    power_button_action    = "poweroff";
+    HwAction    power_button_action    = "suspend";
     HwAction    sleep_button_action    = "suspend";
 };
 
 struct Config {
-    std::string          default_profile;
+    std::string          active_profile;
     std::vector<Profile> profiles;
 
     const Profile* find(const std::string& name) const;
-    const Profile* default_prof() const { return find(default_profile); }
+    const Profile* active_prof() const { return find(active_profile); }
 };
 
 // Throws std::runtime_error on parse failure.

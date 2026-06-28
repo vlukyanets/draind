@@ -24,7 +24,7 @@ Config load_config(const std::string& path) {
     json::Value root = json::parse(ss.str());
 
     Config cfg;
-    cfg.default_profile = root.str("default_profile");
+    cfg.active_profile = root.str("active_profile");
 
     for (const auto& pv : root["profiles"].get_array()) {
         Profile p;
@@ -46,8 +46,8 @@ Config load_config(const std::string& path) {
 
     if (cfg.profiles.empty())
         throw std::runtime_error("config has no profiles");
-    if (cfg.default_profile.empty())
-        cfg.default_profile = cfg.profiles[0].name;
+    if (cfg.active_profile.empty())
+        cfg.active_profile = cfg.profiles[0].name;
 
     return cfg;
 }
