@@ -407,14 +407,12 @@ void Daemon::send_lock_to_active_agent() {
             return;
         }
     }
-    // Fallback: some compositors (e.g. greetd) keep an extra session active on
-    // the seat; ask logind directly whether each agent's own session is active.
-    for (const auto& [fd, agent] : m_impl->agents) {
-        if (SessionTracker::session_is_active(agent.session_id)) {
-            LOG_DEBUG << "daemon: sending lock to session=" << agent.session_id << " (fallback)";
-            m_impl->server.send(fd, proto::encode_lock());
-            return;
-        }
+    // If there is exactly one agent (session ID unknown/empty), send to it.
+    if (m_impl->agents.size() == 1) {
+        auto& [fd, agent] = *m_impl->agents.begin();
+        LOG_DEBUG << "daemon: sending lock to sole agent (session unknown) fd=" << fd;
+        m_impl->server.send(fd, proto::encode_lock());
+        return;
     }
     LOG_WARN << "daemon: no agent matched active session — lock not sent"
              << " (active=" << m_impl->sessions.active_session_id() << ","
