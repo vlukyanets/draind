@@ -37,6 +37,15 @@ is idle or inhibited. The daemon only acts on signals from the **active** sessio
 | `src/ctl/` | `draind-ctl` | user (one-shot CLI) |
 | `src/shared/` | — | shared headers/sources |
 
+### Notable shared headers
+
+| File | Purpose |
+|------|---------|
+| `src/shared/protocol.hpp` | All socket message encode/decode helpers |
+| `src/shared/battery.hpp` | Read battery state from `/sys/class/power_supply/BAT*` |
+| `src/shared/json.hpp` | Minimal JSON parser/serialiser |
+| `src/shared/logger.hpp` | Lightweight logging macros |
+
 ## Build
 
 ```sh

@@ -13,6 +13,7 @@ Handles screen dimming, suspend-on-idle, and hardware button actions (lid, power
 - **Power profiles** — CPU governor, energy performance preference, brightness
 - **Multi-user aware** — only the active session drives dim/sleep; inhibits from any session are respected
 - **Fallback to `/dev/input`** — works without Wayland
+- **Battery status** — percent, charge state, and estimated time to empty/full via `draind-ctl battery`
 
 ## Architecture
 
@@ -151,10 +152,13 @@ sudo systemctl enable --now draind
 systemctl --user enable --now draind-agent
 
 # CLI
-draind-ctl status
+draind-ctl status            # profile, dim state, active session, battery
+draind-ctl battery           # battery percent, status, and time estimate
 draind-ctl list-profiles
 draind-ctl set-profile powersave
 draind-ctl reload-config
+draind-ctl list-inhibitors
+draind-ctl lock
 ```
 
 ## Socket protocol

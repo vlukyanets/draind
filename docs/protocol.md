@@ -140,17 +140,35 @@ Sent in response to INHIBIT / UNINHIBIT to confirm receipt.
 Sends a LOCK message to the active session's agent. Returns `"ok": true` even if
 no agent is currently connected (the lock is silently dropped).
 
+### BATTERY
+
+```json
+{"type":"ctl","cmd":"battery"}
+```
+
+Returns current battery state read from `/sys/class/power_supply/BAT*`.
+
 ## Daemon → Ctl messages
 
 All ctl responses include `"ok": true|false`. On error, an `"error"` string is included.
 
 ```json
-{"ok":true,"active_profile":"balanced","dimmed":false,"active_session":"3"}
+{"ok":true,"active_profile":"balanced","dimmed":false,"active_session":"3","battery_status":"discharging","battery_percent":73}
+{"ok":true,"present":true,"status":"discharging","percent":73,"time_to_empty_min":154}
+{"ok":true,"present":true,"status":"charging","percent":42,"time_to_full_min":87}
+{"ok":true,"present":false,"status":"absent"}
 {"ok":true,"profiles":["performance","balanced","powersave"]}
 {"ok":true,"inhibitors":["3: VLC: Playing video"]}
 {"ok":true}
 {"ok":false,"error":"profile not found"}
 ```
+
+Battery status values: `full`, `charging`, `discharging`, `not_charging`, `absent`, `unknown`.
+
+The `status` reply includes `battery_status` and `battery_percent` fields alongside the
+normal status fields. The `battery` reply includes `present`, `status`, `percent`, and
+optionally `time_to_empty_min` or `time_to_full_min` (only present when the rate is
+non-zero and the direction is known).
 
 ## Error handling
 
