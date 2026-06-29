@@ -46,7 +46,7 @@
       "problemMatcher": []
     },
     {
-      "label": "cmake-format: CMakeLists.txt",
+      "label": "Format CMakeLists.txt",
       "type": "shell",
       "command": "cmake-format -i CMakeLists.txt",
       "presentation": {
@@ -54,104 +54,6 @@
         "panel": "shared"
       },
       "problemMatcher": []
-    },
-    {
-      "label": "Format all",
-      "dependsOn": [
-        "clang-format: all files",
-        "cmake-format: CMakeLists.txt"
-      ],
-      "dependsOrder": "parallel",
-      "presentation": {
-        "reveal": "silent",
-        "panel": "shared"
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "systemd: install & restart draind",
-      "type": "shell",
-      "command": "sudo cp build/draind /usr/bin/draind && sudo cp build/draind-ctl /usr/bin/draind-ctl && sudo systemctl restart draind",
-      "dependsOn": [
-        "Build",
-        "systemd: install service file"
-      ],
-      "dependsOrder": "sequence",
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared"
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "systemd: install service file",
-      "type": "shell",
-      "command": "sudo cp config/draind.service /usr/lib/systemd/system/draind.service && sudo systemctl daemon-reload",
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared"
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "systemd: enable draind",
-      "type": "shell",
-      "command": "sudo systemctl enable --now draind",
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared"
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "systemd: disable draind",
-      "type": "shell",
-      "command": "sudo systemctl disable --now draind",
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared"
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "systemd: status draind",
-      "type": "shell",
-      "command": "systemctl status draind",
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared"
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "gdbserver: start draind on :1234",
-      "type": "shell",
-      "command": "sudo DRAIND_CONFIG=${workspaceFolder}/config/draind.json gdbserver localhost:1234 ${workspaceFolder}/build/draind",
-      "dependsOn": "Build",
-      "isBackground": true,
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated"
-      },
-      "problemMatcher": {
-        "pattern": { "regexp": "^$" },
-        "background": {
-          "activeOnStart": true,
-          "beginsPattern": "^gdbserver",
-          "endsPattern": "Listening on port 1234"
-        }
-      }
-    },
-    {
-      "label": "systemd: logs draind",
-      "type": "shell",
-      "command": "journalctl -u draind -f",
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated"
-      },
-      "problemMatcher": [],
-      "isBackground": true
     }
   ]
 }
