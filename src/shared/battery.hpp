@@ -57,7 +57,6 @@ static inline bool read_str(const std::string& path, std::string& out) {
 
 // Returns info for the first BAT* supply found, or present=false if none.
 inline BatteryInfo read() {
-    // Try BAT0–BAT9 in order.
     for (int i = 0; i <= 9; ++i) {
         std::string base = "/sys/class/power_supply/BAT" + std::to_string(i);
         std::ifstream probe(base + "/present");

@@ -1,13 +1,9 @@
-#ifdef HAVE_WAYLAND
-
 #include "wayland_idle_monitor.hpp"
 #include "../shared/logger.hpp"
 
 #include <cstring>
 
 namespace draind::agent {
-
-// ── Notification listeners ────────────────────────────────────────────────────
 
 static void notif_idled(void* data, ext_idle_notification_v1* notif) {
     static_cast<WaylandIdleMonitor*>(data)->on_notification_idled(notif);
@@ -21,8 +17,6 @@ static constexpr ext_idle_notification_v1_listener k_notif_listener = {
     .resumed = notif_resumed,
 };
 
-// ── WaylandIdleMonitor ────────────────────────────────────────────────────────
-
 WaylandIdleMonitor::~WaylandIdleMonitor() {
     destroy_notifications();
     if (m_notifier)
@@ -35,7 +29,7 @@ WaylandIdleMonitor::~WaylandIdleMonitor() {
         wl_display_disconnect(m_display);
 }
 
-bool WaylandIdleMonitor::init(int dim_ms, int sleep_ms) {
+bool WaylandIdleMonitor::init(int dim_ms, int screen_off_ms, int sleep_ms) {
     const char* disp = getenv("WAYLAND_DISPLAY");
     if (!disp) {
         LOG_INFO << "wayland_idle: WAYLAND_DISPLAY not set — skipping";
@@ -47,10 +41,6 @@ bool WaylandIdleMonitor::init(int dim_ms, int sleep_ms) {
         LOG_INFO << "wayland_idle: wl_display_connect failed — skipping";
         return false;
     }
-
-    // Use a simple synchronous registry enumeration.
-    // We store the bound globals through the listener using local variables
-    // captured via a small context struct.
 
     struct Ctx {
         ext_idle_notifier_v1* notifier = nullptr;
@@ -88,10 +78,11 @@ bool WaylandIdleMonitor::init(int dim_ms, int sleep_ms) {
         return false;
     }
 
-    if (!create_notifications(dim_ms, sleep_ms))
+    if (!create_notifications(dim_ms, screen_off_ms, sleep_ms))
         return false;
 
-    LOG_INFO << "wayland_idle: initialized dim=" << dim_ms << "ms sleep=" << sleep_ms << "ms";
+    LOG_INFO << "wayland_idle: initialized dim=" << dim_ms << "ms screen_off=" << screen_off_ms
+             << "ms sleep=" << sleep_ms << "ms";
     return true;
 }
 
@@ -100,13 +91,17 @@ void WaylandIdleMonitor::destroy_notifications() {
         ext_idle_notification_v1_destroy(m_notif_sleep);
         m_notif_sleep = nullptr;
     }
+    if (m_notif_screen_off) {
+        ext_idle_notification_v1_destroy(m_notif_screen_off);
+        m_notif_screen_off = nullptr;
+    }
     if (m_notif_dim) {
         ext_idle_notification_v1_destroy(m_notif_dim);
         m_notif_dim = nullptr;
     }
 }
 
-bool WaylandIdleMonitor::create_notifications(int dim_ms, int sleep_ms) {
+bool WaylandIdleMonitor::create_notifications(int dim_ms, int screen_off_ms, int sleep_ms) {
     destroy_notifications();
 
     if (dim_ms > 0) {
@@ -117,6 +112,16 @@ bool WaylandIdleMonitor::create_notifications(int dim_ms, int sleep_ms) {
             return false;
         }
         ext_idle_notification_v1_add_listener(m_notif_dim, &k_notif_listener, this);
+    }
+
+    if (screen_off_ms > 0) {
+        m_notif_screen_off = ext_idle_notifier_v1_get_idle_notification(
+            m_notifier, (uint32_t)screen_off_ms, m_seat);
+        if (!m_notif_screen_off) {
+            LOG_WARN << "wayland_idle: failed to create screen_off notification";
+            return false;
+        }
+        ext_idle_notification_v1_add_listener(m_notif_screen_off, &k_notif_listener, this);
     }
 
     if (sleep_ms > 0) {
@@ -133,8 +138,8 @@ bool WaylandIdleMonitor::create_notifications(int dim_ms, int sleep_ms) {
     return true;
 }
 
-void WaylandIdleMonitor::set_timeouts(int dim_ms, int sleep_ms) {
-    create_notifications(dim_ms, sleep_ms);
+void WaylandIdleMonitor::set_timeouts(int dim_ms, int screen_off_ms, int sleep_ms) {
+    create_notifications(dim_ms, screen_off_ms, sleep_ms);
 }
 
 void WaylandIdleMonitor::poll() { wl_display_dispatch(m_display); }
@@ -145,6 +150,9 @@ void WaylandIdleMonitor::on_notification_idled(ext_idle_notification_v1* notif) 
     if (notif == m_notif_dim && m_on_dim) {
         LOG_DEBUG << "wayland_idle: dim threshold idled";
         m_on_dim();
+    } else if (notif == m_notif_screen_off && m_on_screen_off) {
+        LOG_DEBUG << "wayland_idle: screen_off threshold idled";
+        m_on_screen_off();
     } else if (notif == m_notif_sleep && m_on_sleep) {
         LOG_DEBUG << "wayland_idle: sleep threshold idled";
         m_on_sleep();
@@ -160,5 +168,3 @@ void WaylandIdleMonitor::on_notification_resumed(ext_idle_notification_v1* notif
 }
 
 } // namespace draind::agent
-
-#endif // HAVE_WAYLAND

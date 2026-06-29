@@ -26,7 +26,6 @@ bool MprisMonitor::init() {
         return false;
     }
 
-    // Watch NameOwnerChanged to detect players appearing/disappearing
     r = sd_bus_match_signal(m_bus, nullptr, "org.freedesktop.DBus", "/org/freedesktop/DBus",
                             "org.freedesktop.DBus", "NameOwnerChanged", trampoline_name_owner,
                             this);
@@ -35,7 +34,6 @@ bool MprisMonitor::init() {
         return false;
     }
 
-    // Watch PropertiesChanged on all MPRIS objects
     r = sd_bus_match_signal(m_bus, nullptr, nullptr, "/org/mpris/MediaPlayer2",
                             "org.freedesktop.DBus.Properties", "PropertiesChanged",
                             trampoline_properties, this);
@@ -92,7 +90,6 @@ void MprisMonitor::scan_existing_players() {
         if (!is_mpris_name(name))
             continue;
 
-        // Resolve unique name
         struct Err2 {
             sd_bus_error e = SD_BUS_ERROR_NULL;
             ~Err2() { sd_bus_error_free(&e); }
@@ -200,7 +197,6 @@ int MprisMonitor::handle_name_owner_changed(sd_bus_message* m) {
 }
 
 int MprisMonitor::handle_properties_changed(sd_bus_message* m) {
-    // Determine which player sent this by looking up the sender's unique name
     const char* sender = sd_bus_message_get_sender(m);
     if (!sender)
         return 0;
@@ -209,13 +205,11 @@ int MprisMonitor::handle_properties_changed(sd_bus_message* m) {
     if (m_unique_to_wk.find(unique) == m_unique_to_wk.end())
         return 0;
 
-    // Read iface
     const char* iface = nullptr;
     sd_bus_message_read(m, "s", &iface);
     if (!iface || strcmp(iface, "org.mpris.MediaPlayer2.Player") != 0)
         return 0;
 
-    // Scan changed{} for PlaybackStatus
     if (sd_bus_message_enter_container(m, SD_BUS_TYPE_ARRAY, "{sv}") < 0)
         return 0;
 

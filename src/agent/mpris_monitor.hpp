@@ -47,7 +47,6 @@ class MprisMonitor {
     std::unordered_map<std::string, std::string> m_wk_to_unique; // well-known → unique
     std::unordered_map<std::string, std::string> m_unique_to_wk; // unique → well-known
 
-    // Set of unique bus names currently Playing
     std::unordered_set<std::string> m_playing;
 
     bool m_inhibiting = false;

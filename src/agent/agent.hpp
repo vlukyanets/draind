@@ -25,7 +25,7 @@ class Agent {
 
   private:
     void connect_to_daemon();
-    void setup_idle_monitor(int dim_ms, int sleep_ms);
+    void setup_idle_monitor(int dim_ms, int screen_off_ms, int sleep_ms);
     void loop();
 
     void on_daemon_line(const std::string& line);

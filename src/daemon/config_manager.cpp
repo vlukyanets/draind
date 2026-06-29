@@ -7,7 +7,7 @@
 
 namespace draind::daemon {
 
-ConfigManager::ConfigManager(std::string path) : m_path(std::move(path)) { reload(); }
+ConfigManager::ConfigManager(const std::string& path) : m_path(std::move(path)) { reload(); }
 
 void ConfigManager::reload() {
     LOG_DEBUG << "config: loading " << m_path;

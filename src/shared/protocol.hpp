@@ -13,13 +13,15 @@ constexpr const char* SOCKET_PATH = "/run/draind/draind.sock";
 // ── Message type strings ──────────────────────────────────────────────────────
 constexpr const char* T_HELLO      = "hello";
 constexpr const char* T_CONFIG     = "config";
-constexpr const char* T_IDLE_DIM   = "idle_dim";
-constexpr const char* T_IDLE_SLEEP = "idle_sleep";
+constexpr const char* T_IDLE_DIM        = "idle_dim";
+constexpr const char* T_IDLE_SCREEN_OFF = "idle_screen_off";
+constexpr const char* T_IDLE_SLEEP      = "idle_sleep";
 constexpr const char* T_ACTIVE     = "active";
 constexpr const char* T_INHIBIT    = "inhibit";
 constexpr const char* T_UNINHIBIT  = "uninhibit";
 constexpr const char* T_ACK        = "ack";
 constexpr const char* T_LOCK       = "lock";
+constexpr const char* T_SCREEN_OFF = "screen_off";
 constexpr const char* T_PRE_SLEEP  = "pre_sleep";
 constexpr const char* T_CTL        = "ctl";
 constexpr const char* T_CTL_REPLY  = "ctl_reply";
@@ -43,6 +45,12 @@ inline std::string encode_hello(const std::string& session_id, uint32_t uid) {
 inline std::string encode_idle_dim() {
     json::Value v;
     v["type"] = T_IDLE_DIM;
+    return json::dump(v);
+}
+
+inline std::string encode_idle_screen_off() {
+    json::Value v;
+    v["type"] = T_IDLE_SCREEN_OFF;
     return json::dump(v);
 }
 
@@ -74,11 +82,12 @@ inline std::string encode_uninhibit(const std::string& reason) {
 
 // ── Daemon → Agent ────────────────────────────────────────────────────────────
 
-inline std::string encode_config(int dim_timeout, int sleep_timeout) {
+inline std::string encode_config(int dim_timeout, int screen_off_timeout, int sleep_timeout) {
     json::Value v;
-    v["type"]          = T_CONFIG;
-    v["dim_timeout"]   = dim_timeout;
-    v["sleep_timeout"] = sleep_timeout;
+    v["type"]               = T_CONFIG;
+    v["dim_timeout"]        = dim_timeout;
+    v["screen_off_timeout"] = screen_off_timeout;
+    v["sleep_timeout"]      = sleep_timeout;
     return json::dump(v);
 }
 
@@ -91,6 +100,12 @@ inline std::string encode_ack() {
 inline std::string encode_lock() {
     json::Value v;
     v["type"] = T_LOCK;
+    return json::dump(v);
+}
+
+inline std::string encode_screen_off() {
+    json::Value v;
+    v["type"] = T_SCREEN_OFF;
     return json::dump(v);
 }
 

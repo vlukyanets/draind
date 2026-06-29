@@ -29,11 +29,17 @@ Sent once immediately after connecting.
 - `uid`: numeric UID of the connecting user
 
 ### IDLE_DIM
-The session has been idle long enough to dim. Sent when the Wayland idle notification
-for the dim timeout fires (or the fallback input timer expires).
+The session has been idle long enough to dim.
 
 ```json
 {"type":"idle_dim"}
+```
+
+### IDLE_SCREEN_OFF
+The session has been idle long enough to turn the display off.
+
+```json
+{"type":"idle_screen_off"}
 ```
 
 ### IDLE_SLEEP
@@ -71,7 +77,7 @@ Sent to the agent immediately after a valid HELLO, and again after any config re
 The agent uses these values to configure Wayland idle notification timeouts.
 
 ```json
-{"type":"config","dim_timeout":180,"sleep_timeout":300}
+{"type":"config","dim_timeout":180,"screen_off_timeout":300,"sleep_timeout":600}
 ```
 
 ### LOCK
@@ -81,6 +87,16 @@ the user-configured `lock_cmd` as a background process (fire-and-forget).
 
 ```json
 {"type":"lock"}
+```
+
+### SCREEN_OFF
+Sent to the active session's agent when the screen-off timeout expires and no
+inhibitor is active. The agent calls `zwlr_output_power_manager_v1` to put all
+compositor outputs into DPMS-off state. The agent turns displays back on
+autonomously when the Wayland idle notification resumes (i.e. on user input).
+
+```json
+{"type":"screen_off"}
 ```
 
 ### PRE_SLEEP

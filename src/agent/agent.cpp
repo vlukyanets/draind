@@ -1,11 +1,8 @@
 #include "agent.hpp"
 #include "idle_monitor.hpp"
-#include "input_idle_monitor.hpp"
 #include "mpris_monitor.hpp"
-
-#ifdef HAVE_WAYLAND
 #include "wayland_idle_monitor.hpp"
-#endif
+#include "wayland_output_power.hpp"
 
 #include "../shared/json.hpp"
 #include "../shared/logger.hpp"
@@ -31,6 +28,8 @@ struct Agent::Impl {
     sock::LineBuffer              daemon_buf;
     std::unique_ptr<IIdleMonitor> idle;
     MprisMonitor                  mpris;
+    WaylandOutputPower            output_power;
+    bool                          screen_off = false; // true while displays are powered off
 };
 
 Agent::Agent(AgentOptions opts) : m_opts(std::move(opts)) {
@@ -56,6 +55,9 @@ int Agent::run() {
 
     m_impl           = new Impl();
     m_impl->epoll_fd = epoll_create1(EPOLL_CLOEXEC);
+
+    if (!m_impl->output_power.init())
+        LOG_WARN << "agent: output power management unavailable — screen-off will be a no-op";
 
     connect_to_daemon();
 
@@ -99,8 +101,7 @@ void Agent::connect_to_daemon() {
     send(proto::encode_hello(m_opts.session_id, m_opts.uid));
 }
 
-void Agent::setup_idle_monitor(int dim_ms, int sleep_ms) {
-    // Remove old idle monitor fd from epoll if any
+void Agent::setup_idle_monitor(int dim_ms, int screen_off_ms, int sleep_ms) {
     if (m_impl->idle) {
         int old_fd = m_impl->idle->fd();
         if (old_fd >= 0)
@@ -108,29 +109,22 @@ void Agent::setup_idle_monitor(int dim_ms, int sleep_ms) {
         m_impl->idle.reset();
     }
 
-    std::unique_ptr<IIdleMonitor> mon;
-
-#ifdef HAVE_WAYLAND
-    auto wl = std::make_unique<WaylandIdleMonitor>();
-    if (wl->init(dim_ms, sleep_ms)) {
-        mon = std::move(wl);
-        LOG_INFO << "agent: using Wayland idle monitor";
-    }
-#endif
-
-    if (!mon) {
-        auto inp = std::make_unique<InputIdleMonitor>();
-        if (!inp->init(dim_ms, sleep_ms)) {
-            LOG_ERROR << "agent: InputIdleMonitor init failed — no idle detection";
-            return;
-        }
-        mon = std::move(inp);
-        LOG_INFO << "agent: using /dev/input idle monitor";
+    auto mon = std::make_unique<WaylandIdleMonitor>();
+    if (!mon->init(dim_ms, screen_off_ms, sleep_ms)) {
+        LOG_ERROR << "agent: WaylandIdleMonitor init failed — no idle detection";
+        return;
     }
 
     mon->on_dim([this]() { send(proto::encode_idle_dim()); });
+    mon->on_screen_off([this]() { send(proto::encode_idle_screen_off()); });
     mon->on_sleep([this]() { send(proto::encode_idle_sleep()); });
-    mon->on_active([this]() { send(proto::encode_active()); });
+    mon->on_active([this]() {
+        if (m_impl->screen_off) {
+            m_impl->output_power.set_on();
+            m_impl->screen_off = false;
+        }
+        send(proto::encode_active());
+    });
 
     int ifd = mon->fd();
     if (ifd >= 0) {
@@ -167,7 +161,6 @@ void Agent::loop() {
             } else if (m_impl->idle && fd == m_impl->idle->fd()) {
                 m_impl->idle->poll();
             }
-            // mpris polled unconditionally above
         }
     }
 }
@@ -184,20 +177,24 @@ void Agent::on_daemon_line(const std::string& line) {
     std::string type = proto::msg_type(msg);
 
     if (type == proto::T_CONFIG) {
-        int dim   = (int)msg.num("dim_timeout", 0) * 1000;
-        int sleep = (int)msg.num("sleep_timeout", 0) * 1000;
-        LOG_INFO << "agent: received config dim=" << dim << "ms sleep=" << sleep << "ms";
+        int dim        = (int)msg.num("dim_timeout", 0) * 1000;
+        int screen_off = (int)msg.num("screen_off_timeout", 0) * 1000;
+        int sleep      = (int)msg.num("sleep_timeout", 0) * 1000;
+        LOG_INFO << "agent: received config dim=" << dim << "ms screen_off=" << screen_off
+                 << "ms sleep=" << sleep << "ms";
         if (m_impl->idle)
-            m_impl->idle->set_timeouts(dim, sleep);
+            m_impl->idle->set_timeouts(dim, screen_off, sleep);
         else
-            setup_idle_monitor(dim, sleep);
+            setup_idle_monitor(dim, screen_off, sleep);
+    } else if (type == proto::T_SCREEN_OFF) {
+        m_impl->output_power.set_off();
+        m_impl->screen_off = true;
     } else if (type == proto::T_LOCK) {
         run_lock_cmd();
     } else if (type == proto::T_PRE_SLEEP) {
         run_before_sleep_cmd();
         send(proto::encode_ack());
     } else if (type == proto::T_ACK) {
-        // nothing
     } else {
         LOG_DEBUG << "agent: unhandled message type=" << type;
     }

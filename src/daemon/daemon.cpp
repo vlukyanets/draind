@@ -19,15 +19,11 @@
 
 namespace draind::daemon {
 
-// ── Per-agent state ───────────────────────────────────────────────────────────
-
 struct AgentState {
     std::string           session_id;
     uint32_t              uid = 0;
     std::set<std::string> inhibits;
 };
-
-// ── Impl ──────────────────────────────────────────────────────────────────────
 
 struct Daemon::Impl {
     ConfigManager  config;
@@ -44,8 +40,6 @@ struct Daemon::Impl {
 
 volatile sig_atomic_t Daemon::s_quit = 0;
 void                  Daemon::signal_handler(int) { s_quit = 1; }
-
-// ── Daemon ────────────────────────────────────────────────────────────────────
 
 Daemon::Daemon(DaemonOptions opts) : m_opts(std::move(opts)) { g_log_level = m_opts.log_level; }
 
@@ -162,14 +156,11 @@ void Daemon::loop() {
             } else if (fd == im.hw_events.fd()) {
                 im.hw_events.poll();
             }
-            // sessions.bus_fd() is polled unconditionally above
-        }
+            }
     }
 
     LOG_INFO << "draind stopping";
 }
-
-// ── Message dispatch ──────────────────────────────────────────────────────────
 
 void Daemon::on_line(int fd, const std::string& line) {
     json::Value msg;
@@ -193,7 +184,6 @@ void Daemon::on_line(int fd, const std::string& line) {
         return;
     }
 
-    // All remaining types require a registered agent
     if (!m_impl->agents.count(fd)) {
         LOG_WARN << "daemon: unexpected message before hello fd=" << fd;
         return;
@@ -201,6 +191,8 @@ void Daemon::on_line(int fd, const std::string& line) {
 
     if (type == proto::T_IDLE_DIM)
         on_idle_dim(fd);
+    else if (type == proto::T_IDLE_SCREEN_OFF)
+        on_idle_screen_off(fd);
     else if (type == proto::T_IDLE_SLEEP)
         on_idle_sleep(fd);
     else if (type == proto::T_ACTIVE)
@@ -217,13 +209,10 @@ void Daemon::on_disconnect(int fd) {
     auto it = m_impl->agents.find(fd);
     if (it != m_impl->agents.end()) {
         LOG_INFO << "daemon: agent disconnected session=" << it->second.session_id;
-        // If this agent was holding inhibits, those are now gone.
         m_impl->agents.erase(it);
     }
     epoll_del(m_impl->epoll_fd, fd);
 }
-
-// ── Agent handlers ────────────────────────────────────────────────────────────
 
 void Daemon::on_hello(int fd, const json::Value& msg) {
     AgentState s;
@@ -268,9 +257,26 @@ void Daemon::on_idle_sleep(int fd) {
     do_suspend("suspend");
 }
 
+void Daemon::on_idle_screen_off(int fd) {
+    if (!is_active_agent(fd)) {
+        LOG_DEBUG << "daemon: idle_screen_off from inactive session fd=" << fd << " — ignored";
+        return;
+    }
+    if (has_any_inhibit()) {
+        LOG_DEBUG << "daemon: idle_screen_off suppressed by inhibitor";
+        return;
+    }
+    if (m_screen_off)
+        return;
+    m_screen_off = true;
+    send_screen_off_to_active_agent();
+}
+
 void Daemon::on_active(int fd) {
     if (!is_active_agent(fd))
         return;
+    // Agent turns screens back on autonomously; daemon only tracks dimmed state.
+    m_screen_off = false;
     if (!m_dimmed)
         return;
     const Profile* p = m_impl->config.active_profile();
@@ -299,8 +305,6 @@ void Daemon::on_uninhibit(int fd, const json::Value& msg) {
     LOG_INFO << "daemon: uninhibit from session=" << it->second.session_id << " reason=" << reason;
     m_impl->server.send(fd, proto::encode_ack());
 }
-
-// ── Ctl handler ───────────────────────────────────────────────────────────────
 
 void Daemon::on_ctl(int fd, const json::Value& msg) {
     std::string cmd = msg.str("cmd");
@@ -388,8 +392,6 @@ void Daemon::on_ctl(int fd, const json::Value& msg) {
     }
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
 bool Daemon::is_active_agent(int fd) const {
     auto it = m_impl->agents.find(fd);
     if (it == m_impl->agents.end())
@@ -405,16 +407,35 @@ bool Daemon::has_any_inhibit() const {
 }
 
 void Daemon::send_config(int fd) {
-    const Profile* p     = m_impl->config.active_profile();
-    int            dim   = p ? p->dim_timeout : 0;
-    int            sleep = p ? p->sleep_timeout : 0;
-    m_impl->server.send(fd, proto::encode_config(dim, sleep));
-    LOG_DEBUG << "daemon: sent config to fd=" << fd << " dim=" << dim << "s sleep=" << sleep << "s";
+    const Profile* p          = m_impl->config.active_profile();
+    int            dim        = p ? p->dim_timeout : 0;
+    int            screen_off = p ? p->screen_off_timeout : 0;
+    int            sleep      = p ? p->sleep_timeout : 0;
+    m_impl->server.send(fd, proto::encode_config(dim, screen_off, sleep));
+    LOG_DEBUG << "daemon: sent config to fd=" << fd << " dim=" << dim << "s screen_off="
+              << screen_off << "s sleep=" << sleep << "s";
 }
 
 void Daemon::broadcast_config() {
     for (const auto& [fd, _] : m_impl->agents)
         send_config(fd);
+}
+
+void Daemon::send_screen_off_to_active_agent() {
+    for (const auto& [afd, agent] : m_impl->agents) {
+        if (m_impl->sessions.is_active(agent.session_id)) {
+            LOG_DEBUG << "daemon: sending screen_off to session=" << agent.session_id;
+            m_impl->server.send(afd, proto::encode_screen_off());
+            return;
+        }
+    }
+    if (m_impl->agents.size() == 1) {
+        auto& [afd, _] = *m_impl->agents.begin();
+        LOG_DEBUG << "daemon: sending screen_off to sole agent fd=" << afd;
+        m_impl->server.send(afd, proto::encode_screen_off());
+        return;
+    }
+    LOG_WARN << "daemon: no agent matched active session — screen_off not sent";
 }
 
 void Daemon::send_lock_to_active_agent() {

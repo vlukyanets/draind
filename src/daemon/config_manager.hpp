@@ -7,7 +7,7 @@ namespace draind::daemon {
 
 class ConfigManager {
   public:
-    explicit ConfigManager(std::string path);
+    explicit ConfigManager(const std::string& path);
 
     // Load or reload. Throws on parse error.
     void reload();

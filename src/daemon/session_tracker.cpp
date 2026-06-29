@@ -23,7 +23,6 @@ bool SessionTracker::init() {
         return false;
     }
 
-    // Resolve seat0 object path
     struct Err {
         sd_bus_error e = SD_BUS_ERROR_NULL;
         ~Err() { sd_bus_error_free(&e); }
@@ -49,7 +48,6 @@ bool SessionTracker::init() {
         m_seat0_path = path;
     LOG_DEBUG << "session_tracker: seat0 path=" << m_seat0_path;
 
-    // Subscribe to PropertiesChanged on seat0
     r = sd_bus_match_signal(m_bus, nullptr, "org.freedesktop.login1", m_seat0_path.c_str(),
                             "org.freedesktop.DBus.Properties", "PropertiesChanged",
                             on_seat_properties, this);
@@ -84,7 +82,6 @@ int SessionTracker::handle_seat_properties(sd_bus_message* m) {
     if (!iface || strcmp(iface, "org.freedesktop.login1.Seat") != 0)
         return 0;
 
-    // Scan changed properties dict
     if (sd_bus_message_enter_container(m, SD_BUS_TYPE_ARRAY, "{sv}") < 0)
         return 0;
 

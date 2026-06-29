@@ -2,17 +2,17 @@
 
 Power management daemon for Linux/Wayland laptops.
 
-Handles screen dimming, suspend-on-idle, and hardware button actions (lid, power, sleep) via configurable profiles. Works correctly with multiple logged-in users and supports both Wayland and non-Wayland setups.
+Handles screen dimming, display power-off, suspend-on-idle, and hardware button actions (lid, power, sleep) via configurable profiles. Works correctly with multiple logged-in users.
 
 ## Features
 
 - **Idle dimming and suspend** — configurable timeouts per profile
+- **Display power-off** — turns monitors off via `zwlr_output_power_manager_v1` (DPMS), wakes on input
 - **Wayland-native idle detection** — uses `ext_idle_notify_v1`, respects compositor inhibitors (e.g. fullscreen video)
 - **MPRIS monitoring** — inhibits dim/sleep while any media player is playing
 - **Hardware button handling** — lid close, power button, sleep button
 - **Power profiles** — CPU governor, energy performance preference, brightness
 - **Multi-user aware** — only the active session drives dim/sleep; inhibits from any session are respected
-- **Fallback to `/dev/input`** — works without Wayland
 - **Battery status** — percent, charge state, and estimated time to empty/full via `draind-ctl battery`
 
 ## Architecture
@@ -36,7 +36,7 @@ yay -S draind
 
 ### From source
 
-**Dependencies:** `libsystemd`, `wayland-client` (optional), `wayland-protocols` (optional)
+**Dependencies:** `libsystemd`, `wayland-client`, `wayland-scanner`
 
 ```sh
 cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
@@ -62,7 +62,8 @@ Controls power profiles: CPU governor, brightness, idle timeouts, and hardware b
 | `cpu_epp` | Energy performance preference | — |
 | `brightness_percent` | Screen brightness (%) | `100` |
 | `dim_brightness_percent` | Brightness when dimmed (%) | `20` |
-| `dim_timeout` | Idle time before dim (seconds) | `300` |
+| `dim_timeout` | Idle time before dim (seconds, `0` = disabled) | `180` |
+| `screen_off_timeout` | Idle time before display power-off (seconds, `0` = disabled) | `300` |
 | `sleep_timeout` | Idle time before suspend (seconds, `0` = disabled) | `600` |
 | `lid_close_action` | Action on lid close | `suspend` |
 | `power_button_action` | Action on power button | `suspend` |
@@ -111,6 +112,7 @@ Controls per-user, per-session behaviour. Create this file for each user who wil
       "brightness_percent": 100,
       "dim_brightness_percent": 20,
       "dim_timeout": 300,
+      "screen_off_timeout": 600,
       "sleep_timeout": 0,
       "lid_close_action": "",
       "power_button_action": "poweroff",
@@ -123,6 +125,7 @@ Controls per-user, per-session behaviour. Create this file for each user who wil
       "brightness_percent": 70,
       "dim_brightness_percent": 10,
       "dim_timeout": 180,
+      "screen_off_timeout": 300,
       "sleep_timeout": 600,
       "lid_close_action": "",
       "power_button_action": "poweroff",
@@ -135,6 +138,7 @@ Controls per-user, per-session behaviour. Create this file for each user who wil
       "brightness_percent": 40,
       "dim_brightness_percent": 5,
       "dim_timeout": 60,
+      "screen_off_timeout": 120,
       "sleep_timeout": 300,
       "lid_close_action": "suspend",
       "power_button_action": "poweroff",

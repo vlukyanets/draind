@@ -14,44 +14,39 @@ find_package(PkgConfig REQUIRED)
 find_library(SYSTEMD_LIB NAMES systemd REQUIRED)
 find_path(SYSTEMD_INCLUDE_DIR NAMES systemd/sd-bus.h REQUIRED)
 
-# ── Optional Wayland support ──────────────────────────────────────────────────
-# When absent the agent falls back to /dev/input idle monitoring.
-pkg_check_modules(WAYLAND_CLIENT wayland-client)
+# ── Wayland (required) ────────────────────────────────────────────────────────
+pkg_check_modules(WAYLAND_CLIENT REQUIRED wayland-client)
 
-if(WAYLAND_CLIENT_FOUND)
-  find_program(WAYLAND_SCANNER wayland-scanner)
-  find_file(
-    EXT_IDLE_NOTIFY_XML
-    NAMES ext-idle-notify-v1.xml
-    PATHS /usr/share/wayland-protocols/staging/ext-idle-notify)
+find_program(WAYLAND_SCANNER wayland-scanner REQUIRED)
 
-  if(WAYLAND_SCANNER AND EXT_IDLE_NOTIFY_XML)
-    set(HAVE_WAYLAND TRUE)
-  else()
-    message(
-      WARNING
-        "wayland-client found but wayland-scanner or ext-idle-notify-v1.xml "
-        "is missing — building without Wayland idle support")
-  endif()
-endif()
+set(PROTO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/protocols)
 
-if(HAVE_WAYLAND)
-  message(STATUS "Wayland idle support: enabled")
+# ext-idle-notify-v1
+set(EXT_IDLE_XML ${PROTO_DIR}/ext-idle-notify-v1.xml)
+set(EXT_IDLE_H   ${CMAKE_CURRENT_BINARY_DIR}/ext-idle-notify-v1-client-protocol.h)
+set(EXT_IDLE_C   ${CMAKE_CURRENT_BINARY_DIR}/ext-idle-notify-v1.c)
 
-  set(PROTO_H ${CMAKE_CURRENT_BINARY_DIR}/ext-idle-notify-v1-client-protocol.h)
-  set(PROTO_C ${CMAKE_CURRENT_BINARY_DIR}/ext-idle-notify-v1.c)
+add_custom_command(
+  OUTPUT ${EXT_IDLE_H} ${EXT_IDLE_C}
+  COMMAND ${WAYLAND_SCANNER} client-header ${EXT_IDLE_XML} ${EXT_IDLE_H}
+  COMMAND ${WAYLAND_SCANNER} private-code   ${EXT_IDLE_XML} ${EXT_IDLE_C}
+  DEPENDS ${EXT_IDLE_XML}
+  COMMENT "Generating ext-idle-notify-v1 protocol glue")
 
-  add_custom_command(
-    OUTPUT ${PROTO_H} ${PROTO_C}
-    COMMAND ${WAYLAND_SCANNER} client-header ${EXT_IDLE_NOTIFY_XML} ${PROTO_H}
-    COMMAND ${WAYLAND_SCANNER} private-code ${EXT_IDLE_NOTIFY_XML} ${PROTO_C}
-    DEPENDS ${EXT_IDLE_NOTIFY_XML}
-    COMMENT "Generating ext-idle-notify-v1 protocol glue")
+# wlr-output-power-management-unstable-v1
+set(OUTPUT_POWER_XML ${PROTO_DIR}/wlr-output-power-management-unstable-v1.xml)
+set(OUTPUT_POWER_H   ${CMAKE_CURRENT_BINARY_DIR}/wlr-output-power-management-unstable-v1-client-protocol.h)
+set(OUTPUT_POWER_C   ${CMAKE_CURRENT_BINARY_DIR}/wlr-output-power-management-unstable-v1.c)
 
-  add_custom_target(wayland_proto DEPENDS ${PROTO_H} ${PROTO_C})
-else()
-  message(STATUS "Wayland idle support: disabled (using /dev/input fallback)")
-endif()
+add_custom_command(
+  OUTPUT ${OUTPUT_POWER_H} ${OUTPUT_POWER_C}
+  COMMAND ${WAYLAND_SCANNER} client-header ${OUTPUT_POWER_XML} ${OUTPUT_POWER_H}
+  COMMAND ${WAYLAND_SCANNER} private-code   ${OUTPUT_POWER_XML} ${OUTPUT_POWER_C}
+  DEPENDS ${OUTPUT_POWER_XML}
+  COMMENT "Generating wlr-output-power-management-unstable-v1 protocol glue")
+
+add_custom_target(wayland_proto DEPENDS ${EXT_IDLE_H} ${EXT_IDLE_C}
+                                        ${OUTPUT_POWER_H} ${OUTPUT_POWER_C})
 
 # ── Shared sources ────────────────────────────────────────────────────────────
 set(SHARED_SOURCES src/shared/config.cpp src/shared/socket.cpp)
@@ -71,27 +66,23 @@ target_include_directories(draind PRIVATE src ${SYSTEMD_INCLUDE_DIR})
 target_link_libraries(draind PRIVATE ${SYSTEMD_LIB})
 
 # ── draind-agent (per-user) ───────────────────────────────────────────────────
-set(AGENT_SOURCES
-    src/agent/main.cpp src/agent/agent.cpp src/agent/agent_config.cpp
-    src/agent/mpris_monitor.cpp src/agent/input_idle_monitor.cpp
-    ${SHARED_SOURCES})
+add_executable(
+  draind-agent
+  src/agent/main.cpp
+  src/agent/agent.cpp
+  src/agent/agent_config.cpp
+  src/agent/mpris_monitor.cpp
+  src/agent/wayland_idle_monitor.cpp
+  src/agent/wayland_output_power.cpp
+  ${EXT_IDLE_C}
+  ${OUTPUT_POWER_C}
+  ${SHARED_SOURCES})
 
-if(HAVE_WAYLAND)
-  list(APPEND AGENT_SOURCES src/agent/wayland_idle_monitor.cpp ${PROTO_C})
-endif()
-
-add_executable(draind-agent ${AGENT_SOURCES})
-
-if(HAVE_WAYLAND)
-  add_dependencies(draind-agent wayland_proto)
-  target_compile_definitions(draind-agent PRIVATE HAVE_WAYLAND)
-  target_include_directories(draind-agent PRIVATE ${WAYLAND_CLIENT_INCLUDE_DIRS}
-                                                  ${CMAKE_CURRENT_BINARY_DIR})
-  target_link_libraries(draind-agent PRIVATE ${WAYLAND_CLIENT_LIBRARIES})
-endif()
-
-target_include_directories(draind-agent PRIVATE src ${SYSTEMD_INCLUDE_DIR})
-target_link_libraries(draind-agent PRIVATE ${SYSTEMD_LIB})
+add_dependencies(draind-agent wayland_proto)
+target_include_directories(draind-agent PRIVATE src
+                                                ${WAYLAND_CLIENT_INCLUDE_DIRS}
+                                                ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(draind-agent PRIVATE ${WAYLAND_CLIENT_LIBRARIES} ${SYSTEMD_LIB})
 
 # ── draind-ctl (CLI) ──────────────────────────────────────────────────────────
 add_executable(draind-ctl src/ctl/main.cpp ${SHARED_SOURCES})

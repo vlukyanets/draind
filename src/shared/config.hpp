@@ -13,7 +13,8 @@ struct Profile {
     std::string cpu_epp;
     int         brightness_percent     = 100;
     int         dim_brightness_percent = 20;
-    int         dim_timeout            = 300; // seconds; 0 = disabled
+    int         dim_timeout            = 180; // seconds; 0 = disabled
+    int         screen_off_timeout     = 300; // seconds; 0 = disabled
     int         sleep_timeout          = 600; // seconds; 0 = disabled
     HwAction    lid_close_action       = "suspend";
     HwAction    power_button_action    = "suspend";

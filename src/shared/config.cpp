@@ -34,6 +34,7 @@ Config load_config(const std::string& path) {
         p.brightness_percent     = (int)pv.num("brightness_percent", 100);
         p.dim_brightness_percent = (int)pv.num("dim_brightness_percent", 20);
         p.dim_timeout            = (int)pv.num("dim_timeout", 300);
+        p.screen_off_timeout     = (int)pv.num("screen_off_timeout", 0);
         p.sleep_timeout          = (int)pv.num("sleep_timeout", 600);
         p.lid_close_action       = pv.str("lid_close_action", "suspend");
         p.power_button_action    = pv.str("power_button_action", "poweroff");
