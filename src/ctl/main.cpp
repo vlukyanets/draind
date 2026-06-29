@@ -16,6 +16,7 @@ using namespace draind;
 static void usage(const char* argv0) {
     std::cerr << "Usage:\n"
               << "  " << argv0 << " status\n"
+              << "  " << argv0 << " battery\n"
               << "  " << argv0 << " list-profiles\n"
               << "  " << argv0 << " list-inhibitors\n"
               << "  " << argv0 << " set-profile <name>\n"
@@ -67,6 +68,7 @@ int main(int argc, char** argv) {
     cmd = argv[i++];
 
     if (cmd == "status") {
+    } else if (cmd == "battery") {
     } else if (cmd == "list-profiles") {
     } else if (cmd == "set-profile") {
         if (i >= argc) {
@@ -93,6 +95,8 @@ int main(int argc, char** argv) {
     std::string req;
     if (cmd == "status")
         req = proto::encode_ctl("status");
+    else if (cmd == "battery")
+        req = proto::encode_ctl("battery");
     else if (cmd == "list-profiles")
         req = proto::encode_ctl("list_profiles");
     else if (cmd == "set-profile")
@@ -132,6 +136,23 @@ int main(int argc, char** argv) {
         std::cout << "profile:        " << resp.str("active_profile") << "\n";
         std::cout << "dimmed:         " << (resp.flag("dimmed") ? "yes" : "no") << "\n";
         std::cout << "active_session: " << resp.str("active_session") << "\n";
+        int bat_pct = (int)resp.num("battery_percent", -1);
+        std::cout << "battery:        " << resp.str("battery_status");
+        if (bat_pct >= 0)
+            std::cout << " (" << bat_pct << "%)";
+        std::cout << "\n";
+    } else if (cmd == "battery") {
+        bool present = resp.flag("present");
+        std::cout << "status:  " << resp.str("status") << "\n";
+        if (present) {
+            std::cout << "percent: " << (int)resp.num("percent", -1) << "%\n";
+            int tte = (int)resp.num("time_to_empty_min", -1);
+            int ttf = (int)resp.num("time_to_full_min", -1);
+            if (tte >= 0)
+                std::cout << "time_to_empty: " << tte / 60 << "h " << tte % 60 << "m\n";
+            if (ttf >= 0)
+                std::cout << "time_to_full:  " << ttf / 60 << "h " << ttf % 60 << "m\n";
+        }
     } else if (cmd == "list-inhibitors") {
         const auto& inhibitors = resp["inhibitors"].get_array();
         if (inhibitors.empty()) {

@@ -5,6 +5,7 @@
 #include "server.hpp"
 #include "session_tracker.hpp"
 
+#include "../shared/battery.hpp"
 #include "../shared/json.hpp"
 #include "../shared/logger.hpp"
 #include "../shared/protocol.hpp"
@@ -306,11 +307,14 @@ void Daemon::on_ctl(int fd, const json::Value& msg) {
     LOG_DEBUG << "daemon: ctl cmd=" << cmd << " fd=" << fd;
 
     if (cmd == "status") {
+        auto        bat = battery::read();
         json::Value r;
         r["ok"]             = true;
         r["active_profile"] = m_impl->config.active_profile_name();
         r["dimmed"]         = m_dimmed;
         r["active_session"] = m_impl->sessions.active_session_id();
+        r["battery_status"]  = battery::status_string(bat.status);
+        r["battery_percent"] = bat.percent;
         m_impl->server.send(fd, proto::encode_ctl_reply(std::move(r)));
 
     } else if (cmd == "set_profile") {
@@ -360,6 +364,21 @@ void Daemon::on_ctl(int fd, const json::Value& msg) {
             r["error"] = e.what();
             m_impl->server.send(fd, proto::encode_ctl_reply(std::move(r)));
         }
+
+    } else if (cmd == "battery") {
+        auto        bat = battery::read();
+        json::Value r;
+        r["ok"]     = true;
+        r["present"] = bat.present;
+        r["status"]  = battery::status_string(bat.status);
+        if (bat.present) {
+            r["percent"] = bat.percent;
+            if (bat.time_to_empty_min.has_value())
+                r["time_to_empty_min"] = *bat.time_to_empty_min;
+            if (bat.time_to_full_min.has_value())
+                r["time_to_full_min"] = *bat.time_to_full_min;
+        }
+        m_impl->server.send(fd, proto::encode_ctl_reply(std::move(r)));
 
     } else {
         json::Value r;
